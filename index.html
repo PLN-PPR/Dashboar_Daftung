@@ -2075,6 +2075,16 @@ body{background:#f3f7fb}
 .notice.info{background:#edf7fd;color:#005d9f}
 .ovHero,.ovBannerCard{box-shadow:0 18px 40px rgba(0,75,135,.14)}
 
+
+<style>
+.btnSync{height:40px;padding:0 16px;border:0;border-radius:11px;background:linear-gradient(135deg,#004b87,#0072ce);color:#fff;font-weight:850;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 8px 20px rgba(0,114,206,.20)}
+.btnSync:hover{filter:brightness(1.04);transform:translateY(-1px)}
+.btnSync:disabled{opacity:.55;cursor:wait;transform:none}
+.syncWrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.syncStatus{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:10px;background:#fff8e8;border:1px solid #f2dfb1;color:#946b13;font-size:10.5px;font-weight:750}
+.syncStatus.ok{background:#eef9f3;border-color:#d2ebdd;color:#168054}
+@media(max-width:700px){.syncWrap{width:100%}.btnSync{flex:1}.syncStatus{flex:1;justify-content:center}}
+</style>
 </style></head><body>
 <!-- LOGIN -->
 <section id="loginPage" class="login">
@@ -2150,7 +2160,11 @@ body{background:#f3f7fb}
         <select id="filterBLTH" onchange="loadDashboard()"><option value="">Semua BLTH</option></select>
         <select id="filterUID" onchange="loadDashboard()"><option value="">Semua UID</option></select>
         <select id="filterSegmen" onchange="loadDashboard()"><option value="">Semua Segmen</option><option>TR</option><option>TM</option><option>TT</option></select>
-        <button class="btn2" onclick="loadDashboard()">↻ Refresh</button>
+        <div class="syncWrap">
+  <button class="btnSync" id="btnSync" type="button" onclick="syncDashboard()">↻ SINKRONISASI DATA</button>
+  <button class="btn2" type="button" onclick="loadDashboard()">↻ Refresh</button>
+  <span class="syncStatus" id="syncStatus">Status: menunggu sinkronisasi</span>
+</div>
       </div>
 
       <div class="kpiGrid">
@@ -2194,6 +2208,7 @@ body{background:#f3f7fb}
         <div class="uploadActions">
           <button class="btn2" onclick="clearUpload()">Reset</button>
           <button class="btnPrimary" id="uploadBtn" onclick="uploadExcel()" disabled>UPLOAD &amp; PROSES</button>
+          <button class="btnSync" id="btnSyncUpload" type="button" onclick="syncDashboard()">↻ SINKRONISASI DATA</button>
         </div>
         <div class="notice info">
           <b>Logika Daftung:</b> data dihitung apabila <b>KetPDL = 1</b> atau <b>Status_Permohonan</b> bukan Penangguhan, Peremajaan, Restitusi, dan Titipan.
@@ -2274,8 +2289,44 @@ async function api(action,payload={}){
 function demoApi(action,payload){
   if(action==="login")return Promise.resolve({ok:true,user:{user:payload.user.toUpperCase(),unit:"PUSAT",role:"ADMIN"}});
   if(action==="dashboard")return Promise.resolve({summary:{total:0,sesuai:0,over:0,kwh:0},uid:[],blth:[],uids:[]});
-  if(action==="upload")return Promise.resolve({ok:true,rows:uploadRows.length,message:"Mode demo: data belum ditulis ke Google Sheet."});
+  if(action==="upload")return Promise.resolve({ok:true,rows:uploadRows.length,message:"Mode demo: data belum ditulis ke Google Sheet.",status:"BELUM SINKRON"});
+  if(action==="sync")return Promise.resolve({ok:true,message:"Mode demo: sinkronisasi simulasi berhasil.",status:"SUDAH SINKRON"});
   return Promise.resolve({ok:false,message:"Action demo tidak tersedia"});
+}
+
+async function syncDashboard(){
+  const btn=document.getElementById("btnSync");
+  const btnUpload=document.getElementById("btnSyncUpload");
+  const status=document.getElementById("syncStatus");
+
+  if(btn){btn.disabled=true;btn.innerHTML="⏳ SINKRONISASI...";}
+  if(btnUpload){btnUpload.disabled=true;btnUpload.innerHTML="⏳ SINKRONISASI...";}
+  if(status){status.className="syncStatus";status.textContent="Status: sedang sinkronisasi...";}
+
+  try{
+    const p={
+      user:currentUser?currentUser.user:"",
+      role:currentUser?currentUser.role:"",
+      unit:currentUser?currentUser.unit:""
+    };
+    const r=await api("sync",p);
+
+    if(r&&r.ok){
+      if(status){status.className="syncStatus ok";status.textContent="Status: SUDAH SINKRON";}
+      showToast(r.message||"Sinkronisasi data berhasil. Dashboard telah diperbarui.","ok");
+      await loadDashboard();
+    }else{
+      if(status){status.className="syncStatus";status.textContent="Status: sinkronisasi gagal";}
+      showToast((r&&r.message)||"Sinkronisasi gagal.","err");
+    }
+  }catch(e){
+    console.error("SYNC ERROR:",e);
+    if(status){status.className="syncStatus";status.textContent="Status: koneksi/sinkronisasi gagal";}
+    showToast("Gagal melakukan sinkronisasi: "+(e.message||e),"err");
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML="↻ SINKRONISASI DATA";}
+    if(btnUpload){btnUpload.disabled=false;btnUpload.innerHTML="↻ SINKRONISASI DATA";}
+  }
 }
 
 async function loadDashboard(){
@@ -2342,7 +2393,11 @@ async function uploadExcel(){
     setProgress(45,"Mengirim data ke Google Apps Script...");
     const r=await api("upload",{user:currentUser,blth:document.getElementById("uploadBLTH").value.trim(),rows:uploadRows});setProgress(100,"Proses selesai.");
     document.getElementById("uploadResult").innerHTML=`<div class="notice ${r&&r.ok?"ok":"err"}"><b>${r&&r.ok?"Upload berhasil":"Upload gagal"}</b><br>${esc(r&&r.message?r.message:"Proses selesai.")}<br>Jumlah baris: <b>${fmt((r&&r.rows)||uploadRows.length)}</b></div>`;
-    if(r&&r.ok){showToast("Upload berhasil diproses.","ok");setTimeout(loadDashboard,500)}
+    if(r&&r.ok){
+      showToast("Upload berhasil. Detil_Daftung sudah diganti dan menunggu sinkronisasi.","ok");
+      const status=document.getElementById("syncStatus");
+      if(status){status.className="syncStatus";status.textContent="Status: BELUM SINKRON";}
+    }
   }catch(e){setProgress(100,"Gagal.");document.getElementById("uploadResult").innerHTML=`<div class="notice err"><b>Upload gagal.</b><br>${esc(e.message)}</div>`}
   finally{btn.disabled=false;btn.textContent="UPLOAD & PROSES"}
 }
