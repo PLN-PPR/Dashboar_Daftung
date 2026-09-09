@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="dashboard-version" content="7.3-icon-legend">
+  <meta name="dashboard-version" content="7.4-role-access">
   <title>Monitoring Daftar Tunggu PLN</title>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
@@ -978,14 +978,14 @@ document.addEventListener("click",function(e){
     <div class="brand">
       <div class="brandLogo"><img src="data:image/png;base64,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" alt="Logo PLN"></div>
       <b>Daftung Monitoring</b>
-      <small>Dashboard PLN Pusat • v7.3</small>
+      <small>Dashboard PLN • v7.4 ROLE</small>
     </div>
 
     <div class="navTitle">MENU</div>
     <button id="navDashboard" class="navBtn active" onclick="showPage('dashboard')">
       <span>▣</span><span>Dashboard</span>
     </button>
-    <button id="navUpload" class="navBtn" onclick="showPage('upload')">
+    <button id="navUpload" class="navBtn pusatManageOnly" onclick="showPage('upload')">
       <span>⇧</span><span>Upload Data</span>
     </button>
 
@@ -1048,7 +1048,7 @@ document.addEventListener("click",function(e){
         </select>
 
         <button class="btnSecondary" onclick="resetDashboardFilter()">Reset Filter</button>
-        <button class="btnPrimary" onclick="syncManual()">↻ SINKRONISASI DATA</button>
+        <button class="btnPrimary pusatManageOnly" onclick="syncManual()">↻ SINKRONISASI DATA</button>
       </div>
 
       <div id="dashboardNoData" class="notice info" style="display:none;margin-bottom:16px"></div>
@@ -1235,7 +1235,7 @@ document.addEventListener("click",function(e){
     </section>
 
     <!-- UPLOAD -->
-    <section id="pageUpload" class="page">
+    <section id="pageUpload" class="page pusatManageOnly">
       <div class="uploadPanel">
         <h3>Upload Detil Daftung</h3>
         <div class="smallMuted">
@@ -1245,7 +1245,7 @@ document.addEventListener("click",function(e){
         <div class="uploadTop">
           <input id="uploadBLTH" type="text" placeholder="BLTH, contoh 202608">
           <button class="btnSecondary" onclick="validateExcel()">✓ Validasi File</button>
-          <button class="btnPrimary" onclick="syncManual()">↻ SINKRONISASI DATA</button>
+          <button class="btnPrimary pusatManageOnly" onclick="syncManual()">↻ SINKRONISASI DATA</button>
         </div>
 
         <label class="dropZone" for="excelFile">
@@ -1290,7 +1290,7 @@ document.addEventListener("click",function(e){
 <div id="toast" class="toast">Pesan</div>
 
 <script>
-console.log("Dashboard Daftung v7.3 aktif");
+console.log("Dashboard Daftung v7.4 aktif");
 
 /* =========================================================
    CONFIG
@@ -1310,6 +1310,11 @@ const REQUIRED_HEADERS = [
 ];
 
 let currentUser = null;
+let currentAccess = {
+  canViewAllUID:false,
+  canManageData:false,
+  scopedUID:""
+};
 let uploadRows = [];
 let slaChart = null;
 let ratioChart = null;
@@ -1415,7 +1420,13 @@ async function api(action,payload={}){
     res=await fetch(CONFIG.SCRIPT_URL,{
       method:"POST",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({action,...payload})
+      body:JSON.stringify({
+        action,
+        ...payload,
+        ...(currentUser && currentUser.authToken && action!=="login"
+          ? {authToken:currentUser.authToken}
+          : {})
+      })
     });
   }catch(err){
     throw new Error(`Koneksi ke server gagal: ${err.message||err}`);
@@ -1492,10 +1503,19 @@ async function login(){
       throw new Error(r&&r.message?r.message:"Login gagal.");
     }
 
-    currentUser=r.user||{
-      user:user.toUpperCase(),
-      unit:"PUSAT",
-      role:"USER"
+    currentUser={
+      ...(r.user||{
+        user:user.toUpperCase(),
+        unit:"",
+        role:""
+      }),
+      authToken:r.authToken||""
+    };
+
+    currentAccess={
+      canViewAllUID:!!(r.access&&r.access.canViewAllUID),
+      canManageData:!!(r.access&&r.access.canManageData),
+      scopedUID:String((r.access&&r.access.scopedUID)||"")
     };
 
     enterApp();
@@ -1523,11 +1543,38 @@ function enterApp(){
   document.getElementById("avatar").textContent=
     String(currentUser.user||"PL").slice(0,2).toUpperCase();
 
+  applyAccessUI();
   loadDashboard();
 }
 
-function logout(){
+function applyAccessUI(){
+  document.querySelectorAll(".pusatManageOnly").forEach(el=>{
+    el.classList.toggle("hidden",!currentAccess.canManageData);
+  });
+
+  const uidEl=document.getElementById("filterUID");
+
+  if(uidEl){
+    uidEl.disabled=!currentAccess.canViewAllUID;
+    uidEl.title=currentAccess.canViewAllUID
+      ?"Pilih UID"
+      :"UID dikunci sesuai unit user";
+  }
+}
+
+async function logout(){
+  try{
+    if(currentUser&&currentUser.authToken){
+      await api("logout",{});
+    }
+  }catch(e){}
+
   currentUser=null;
+  currentAccess={
+    canViewAllUID:false,
+    canManageData:false,
+    scopedUID:""
+  };
   uploadRows=[];
   document.getElementById("appPage").classList.add("hidden");
   document.getElementById("loginPage").classList.remove("hidden");
@@ -1545,6 +1592,10 @@ function showPage(page){
     document.getElementById("pageSub").textContent="Monitoring kondisi daftar tunggu terbaru";
     loadDashboard();
   }else{
+    if(!currentAccess.canManageData){
+      showToast("Menu Upload Data hanya tersedia untuk ROLE PUSAT.","err");
+      return;
+    }
     document.getElementById("pageUpload").classList.add("active");
     document.getElementById("navUpload").classList.add("active");
     document.getElementById("pageTitle").textContent="Upload Detil Daftung";
@@ -1581,6 +1632,15 @@ async function loadDashboard(){
 }
 
 function renderDashboard(d){
+  if(d.access){
+    currentAccess={
+      canViewAllUID:!!d.access.canViewAllUID,
+      canManageData:!!d.access.canManageData,
+      scopedUID:String(d.access.scopedUID||"")
+    };
+    applyAccessUI();
+  }
+
   const s=d.summary||{};
 
   document.getElementById("kpiTotal").innerHTML=
@@ -1692,12 +1752,17 @@ function fillUIDSelect(id,arr,keep,firstText){
 
   el.innerHTML="";
 
-  const first=document.createElement("option");
-  first.value="";
-  first.textContent=firstText||"Semua UID";
-  el.appendChild(first);
+  const rows=(arr||[]);
 
-  (arr||[]).forEach(x=>{
+  // UNIT PUSAT dapat melihat seluruh UID dan pilihan "Semua UID".
+  if(currentAccess.canViewAllUID){
+    const first=document.createElement("option");
+    first.value="";
+    first.textContent=firstText||"Semua UID";
+    el.appendChild(first);
+  }
+
+  rows.forEach(x=>{
     const kd=String(
       typeof x==="object"
         ?(x.KDUID??x.value??x.uid??"")
@@ -1713,14 +1778,27 @@ function fillUIDSelect(id,arr,keep,firstText){
     ).trim();
 
     const op=document.createElement("option");
-    op.value=kd;               // Filter backend tetap memakai KDUID
-    op.textContent=nama||kd;   // Pengguna melihat NAMA_UID
+    op.value=kd;
+    op.textContent=nama||kd;
     op.dataset.kduid=kd;
     el.appendChild(op);
   });
 
-  if(keep && [...el.options].some(o=>o.value===old)){
-    el.value=old;
+  if(currentAccess.canViewAllUID){
+    if(keep && [...el.options].some(o=>o.value===old)){
+      el.value=old;
+    }
+    el.disabled=false;
+  }else{
+    const wanted=String(currentAccess.scopedUID||"");
+
+    if(wanted && [...el.options].some(o=>o.value===wanted)){
+      el.value=wanted;
+    }else if(el.options.length){
+      el.selectedIndex=0;
+    }
+
+    el.disabled=true;
   }
 }
 
@@ -2557,13 +2635,25 @@ function resetDashboardFilter(){
       blthEl.selectedIndex=0;
     }
   }
-  document.getElementById("filterUID").value="";
+  {
+    const uidEl=document.getElementById("filterUID");
+    if(currentAccess.canViewAllUID){
+      uidEl.value="";
+    }else if(currentAccess.scopedUID){
+      uidEl.value=currentAccess.scopedUID;
+    }
+  }
   document.getElementById("filterSegmen").value="";
   document.getElementById("filterTransaksi").value="";
   loadDashboard();
 }
 
 async function syncManual(){
+  if(!currentAccess.canManageData){
+    showToast("Sinkronisasi hanya tersedia untuk ROLE PUSAT.","err");
+    return;
+  }
+
   try{
     showToast("Sinkronisasi sedang diproses...");
 
