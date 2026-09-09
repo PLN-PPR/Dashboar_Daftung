@@ -1509,11 +1509,18 @@ async function renderUIDHeatmap(rows,blth,tahunDelta){
     }).addTo(uidHeatmap);
 
     uidHeatmap.fitBounds(uidGeoLayer.getBounds(),{
-      padding:[10,10],
-      maxZoom:5
+      padding:[5,5],
+      maxZoom:6
     });
 
-    setTimeout(()=>uidHeatmap.invalidateSize(),100);
+// Setelah fitBounds selesai, perbesar 1 tingkat
+setTimeout(() => {
+  uidHeatmap.invalidateSize();
+
+  const currentZoom = uidHeatmap.getZoom();
+  uidHeatmap.setZoom(currentZoom + 1);
+
+}, 150);
 
   }catch(err){
     el.innerHTML=`
