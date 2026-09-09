@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="dashboard-version" content="6.6-clean-hero">
+  <meta name="dashboard-version" content="7.0">
   <title>Monitoring Daftar Tunggu PLN</title>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
@@ -761,6 +761,109 @@ document.addEventListener("click",function(e){
       text-shadow:0 1px 5px rgba(0,50,100,.18);
     }
 
+
+    .metricCardHeader{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:14px;
+      margin-bottom:4px;
+    }
+    .metricSelect{
+      min-width:165px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:#17324d;
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:12px;
+      font-weight:800;
+      outline:none;
+      cursor:pointer;
+    }
+    .sortTh{
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .sortTh:hover{
+      background:#f4f9fc;
+    }
+    .sortMark{
+      margin-left:4px;
+      color:#8ba0b2;
+      font-size:10px;
+    }
+    .detailHeaderRow{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .detailActions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .detailMeta{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+    .detailTableWrap{
+      overflow-x:auto;
+      border:1px solid var(--line);
+      border-radius:12px;
+      scrollbar-width:thin;
+    }
+    .detailTable{
+      min-width:1750px;
+      width:100%;
+    }
+    .detailTable th,
+    .detailTable td{
+      white-space:nowrap;
+    }
+    .pager{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+    .pagerButtons{
+      display:flex;
+      gap:8px;
+    }
+    .smallBtn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:#31506d;
+      border-radius:9px;
+      padding:7px 11px;
+      font-size:11px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .smallBtn:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+    .exportBtn{
+      border:0;
+      background:linear-gradient(135deg,#0878c9,#12a8dc);
+      color:#fff;
+      border-radius:9px;
+      padding:8px 12px;
+      font-size:11px;
+      font-weight:900;
+      cursor:pointer;
+    }
+
 </style>
 </head>
 
@@ -806,7 +909,7 @@ document.addEventListener("click",function(e){
     <div class="brand">
       <div class="brandLogo"><img src="data:image/png;base64,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" alt="Logo PLN"></div>
       <b>Daftung Monitoring</b>
-      <small>Dashboard PLN Pusat • v6.6 CLEAN HERO</small>
+      <small>Dashboard PLN Pusat • v7.0</small>
     </div>
 
     <div class="navTitle">MENU</div>
@@ -914,6 +1017,12 @@ document.addEventListener("click",function(e){
           <div id="kpiKwh" class="kpiValue">0,00 GWh</div>
           <div class="kpiSub">Potensi jual energi</div>
         </div>
+
+        <div class="kpi">
+          <div class="kpiLabel">POTENSI RUPIAH</div>
+          <div id="kpiRp" class="kpiValue">Rp 0,00 Miliar</div>
+          <div class="kpiSub">Potensi pendapatan (miliar rupiah)</div>
+        </div>
       </div>
 
       <div class="charts">
@@ -926,8 +1035,17 @@ document.addEventListener("click",function(e){
         </div>
 
         <div class="card">
-          <h3>Rasio Daftung per UID</h3>
-          <div class="sub">Total Daftung dibanding Delta Pelanggan 2025</div>
+          <div class="metricCardHeader">
+            <div>
+              <h3 id="metricChartTitle">Rasio Daftung per UID</h3>
+              <div id="metricChartSubtitle" class="sub">Ranking UID berdasarkan rasio Daftung</div>
+            </div>
+            <select id="metricChartSelect" class="metricSelect" onchange="renderMetricChart()">
+              <option value="rasio">Rasio</option>
+              <option value="rp">Potensi Rp</option>
+              <option value="kwh">Potensi kWh</option>
+            </select>
+          </div>
           <div class="chartBox">
             <canvas id="ratioChart"></canvas>
           </div>
@@ -962,20 +1080,69 @@ document.addEventListener("click",function(e){
           <table>
             <thead>
               <tr>
-                <th>UID</th>
-                <th>Total</th>
-                <th>≤ SLA</th>
-                <th>&gt; SLA</th>
-                <th>% &gt; SLA</th>
-                <th>Delta Daya</th>
-                <th>Potensi GWh</th>
-                <th>Delta PLG Tahun N-1</th>
-                <th>Rasio</th>
-                <th>Status</th>
+                <th class="sortTh" onclick="sortUidTable('uid')">UID <span class="sortMark" data-sort="uid">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('total')">Total <span class="sortMark" data-sort="total">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('sesuai')">≤ SLA <span class="sortMark" data-sort="sesuai">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('over')">&gt; SLA <span class="sortMark" data-sort="over">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('overPct')">% &gt; SLA <span class="sortMark" data-sort="overPct">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('delta')">Delta Daya <span class="sortMark" data-sort="delta">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('kwh')">Potensi GWh <span class="sortMark" data-sort="kwh">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('rp')">Potensi Rp (Miliar) <span class="sortMark" data-sort="rp">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('deltaPlg')">Delta PLG Tahun N-1 <span class="sortMark" data-sort="deltaPlg">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('rasio')">Rasio <span class="sortMark" data-sort="rasio">↕</span></th>
+                <th class="sortTh" onclick="sortUidTable('status')">Status <span class="sortMark" data-sort="status">↕</span></th>
               </tr>
             </thead>
             <tbody id="uidTableBody"></tbody>
           </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="detailHeaderRow">
+          <div>
+            <h3>Detil Pelanggan Daya Baru ≥ 41.500 VA</h3>
+            <div id="highPowerSubtitle" class="sub">Mengambil data BLTH terbaru dari Detil_Daftung</div>
+            <div id="highPowerMeta" class="detailMeta">Memuat data...</div>
+          </div>
+          <div class="detailActions">
+            <button class="smallBtn" onclick="scrollHighPowerTable(-1)">← Kiri</button>
+            <button class="smallBtn" onclick="scrollHighPowerTable(1)">Kanan →</button>
+            <button class="exportBtn" onclick="exportHighPowerDetail()">⇩ Export CSV</button>
+          </div>
+        </div>
+
+        <div id="highPowerTableWrap" class="detailTableWrap">
+          <table class="detailTable">
+            <thead>
+              <tr>
+                <th>KDUID</th>
+                <th>Ket_Transaksi</th>
+                <th>IDPEL</th>
+                <th>Nama Pelanggan</th>
+                <th>TARIF_LAMA</th>
+                <th>DAYA_LAMA</th>
+                <th>TARIF_BARU</th>
+                <th>DAYA_BARU</th>
+                <th>SEGMEN_TEGANGAN</th>
+                <th>TGLBAYAR_INDIVIDU</th>
+                <th>DURASI_HARI_KERJA_CUTOFF_1</th>
+                <th>STATUS_PERMOHONAN</th>
+                <th>ALASAN_KRITERIA_TMP</th>
+              </tr>
+            </thead>
+            <tbody id="highPowerBody">
+              <tr><td colspan="13" style="text-align:center;color:#8a9bac;padding:28px">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager">
+          <div id="highPowerPageInfo" class="smallMuted">Halaman -</div>
+          <div class="pagerButtons">
+            <button id="highPowerPrev" class="smallBtn" onclick="changeHighPowerPage(-1)">← Previous</button>
+            <button id="highPowerNext" class="smallBtn" onclick="changeHighPowerPage(1)">Next →</button>
+          </div>
         </div>
       </div>
     </section>
@@ -1036,7 +1203,7 @@ document.addEventListener("click",function(e){
 <div id="toast" class="toast">Pesan</div>
 
 <script>
-console.log("Dashboard Daftung v6.6 CLEAN HERO aktif");
+console.log("Dashboard Daftung v7.0 aktif");
 
 /* =========================================================
    CONFIG
@@ -1059,6 +1226,12 @@ let currentUser = null;
 let uploadRows = [];
 let slaChart = null;
 let ratioChart = null;
+let currentUidRows = [];
+let currentRatioRows = [];
+let uidSortKey = "rasio";
+let uidSortDir = "desc";
+let highPowerPage = 1;
+let highPowerTotalPages = 0;
 let uidHeatmap = null;
 let uidIndonesiaBounds = null;
 let uidGeoLayer = null;
@@ -1084,6 +1257,22 @@ function fmtGwh(vKwh){
     maximumFractionDigits:2
   }).format(gwh)+" GWh";
 }
+
+function fmtRpMiliar(rp){
+  const miliar=Number(rp||0)/1000000000;
+  return "Rp "+miliar.toLocaleString("id-ID",{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  })+" Miliar";
+}
+
+function fmtRpMiliarShort(rp){
+  return (Number(rp||0)/1000000000).toLocaleString("id-ID",{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
 
 function esc(s){
   return String(s??"")
@@ -1311,6 +1500,7 @@ function renderDashboard(d){
   document.getElementById("kpiSesuai").textContent=fmt(s.sesuai||0)+" PLG";
   document.getElementById("kpiOver").textContent=fmt(s.over||0)+" PLG";
   document.getElementById("kpiKwh").textContent=fmtGwh(s.kwh||0);
+  document.getElementById("kpiRp").textContent=fmtRpMiliar(s.rp||0);
 
   const total=Number(s.total||0);
 
@@ -1344,9 +1534,17 @@ function renderDashboard(d){
   }
 
   renderSlaChart(Number(s.sesuai||0),Number(s.over||0));
-  renderRatioChart(uidRows);
-  renderUidTable(uidRows);
+
+  currentUidRows=uidRows||[];
+  currentRatioRows=d.map||[];
+  renderMetricChart();
+
+  renderUidTable(currentUidRows);
   renderUIDHeatmap(d.map||[],d.mapBLTH||"",d.tahunDelta||"");
+
+  // Tabel ini selalu memakai BLTH terbaru di Detil_Daftung,
+  // independen dari combo BLTH dashboard.
+  loadHighPowerDetail(1);
 }
 
 function fillBLTHSelect(arr){
@@ -1518,101 +1716,158 @@ const ratioLimitLinePlugin = {
   }
 };
 
-function renderRatioChart(rows){
-  const sorted=[...(rows||[])].sort(
-    (a,b)=>Number(b.rasio??b.RASIO??0)-Number(a.rasio??a.RASIO??0)
-  );
+function renderMetricChart(){
+  const mode=document.getElementById("metricChartSelect")?.value||"rasio";
+  const title=document.getElementById("metricChartTitle");
+  const subtitle=document.getElementById("metricChartSubtitle");
 
-  const labels=sorted.map(x=>x.NAMA_UID||x.nama||"-");
-  const vals=sorted.map(x=>Number(x.rasio??x.RASIO??0)*100);
+  let source=[];
+  let values=[];
+  let labels=[];
+  let chartLabel="";
+  let valueSuffix="";
+  let tooltipFormatter=null;
+  let useLimitLine=false;
+
+  if(mode==="rasio"){
+    // Rasio tetap menggunakan snapshot total UID per BLTH:
+    // TR+TM dan PB+PD, tidak terpengaruh filter segmen/transaksi.
+    source=[...(currentRatioRows||[])].sort(
+      (a,b)=>Number(b.rasio??b.RASIO??0)-Number(a.rasio??a.RASIO??0)
+    );
+    labels=source.map(x=>x.NAMA_UID||x.nama||x.KDUID||"-");
+    values=source.map(x=>Number(x.rasio??x.RASIO??0)*100);
+    chartLabel="Rasio Daftung (%)";
+    valueSuffix="%";
+    useLimitLine=true;
+    title.textContent="Ranking Rasio Daftung per UID";
+    subtitle.textContent="Ranking UID berdasarkan rasio Daftung terhadap Delta Pelanggan tahun N-1";
+    tooltipFormatter=v=>"Rasio: "+Number(v||0).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";
+  }else if(mode==="rp"){
+    source=[...(currentUidRows||[])].sort(
+      (a,b)=>Number(b.rp??b.POTENSI_RP??0)-Number(a.rp??a.POTENSI_RP??0)
+    );
+    labels=source.map(x=>x.NAMA_UID||x.nama||x.KDUID||"-");
+    values=source.map(x=>Number(x.rp??x.POTENSI_RP??0)/1000000000);
+    chartLabel="Potensi Rp (Miliar)";
+    title.textContent="Ranking Potensi Rupiah per UID";
+    subtitle.textContent="Ranking UID berdasarkan potensi pendapatan dalam miliar rupiah";
+    tooltipFormatter=v=>"Potensi Rp: Rp "+Number(v||0).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2})+" Miliar";
+  }else{
+    source=[...(currentUidRows||[])].sort(
+      (a,b)=>Number(b.kwh??b.KWH_TOTAL??0)-Number(a.kwh??a.KWH_TOTAL??0)
+    );
+    labels=source.map(x=>x.NAMA_UID||x.nama||x.KDUID||"-");
+    values=source.map(x=>Number(x.kwh??x.KWH_TOTAL??0)/1000000);
+    chartLabel="Potensi GWh";
+    title.textContent="Ranking Potensi Penjualan per UID";
+    subtitle.textContent="Ranking UID berdasarkan potensi penjualan energi";
+    tooltipFormatter=v=>"Potensi: "+Number(v||0).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2})+" GWh";
+  }
 
   const ctx=document.getElementById("ratioChart");
-
   if(ratioChart)ratioChart.destroy();
 
-  // Agar garis 2% selalu terlihat, axis minimum tetap 0 dan
-  // maksimum minimal 2.5%, atau mengikuti data bila lebih tinggi.
-  const maxValue=Math.max(2.5,...vals);
-  const suggestedMax=Math.ceil(maxValue*2)/2;
+  const maxValue=Math.max(useLimitLine?2.5:0,...values);
+  const suggestedMax=maxValue>0 ? maxValue*1.12 : 1;
+
+  const dataset={
+    label:chartLabel,
+    data:values,
+    borderWidth:0,
+    borderRadius:7,
+    borderSkipped:false
+  };
+
+  if(mode==="rasio"){
+    dataset.backgroundColor=values.map(v=>
+      v>=2 ? "#c6283f" :
+      v>=1.5 ? "#d39a14" :
+      "#198754"
+    );
+  }else{
+    dataset.backgroundColor="#1689c8";
+  }
 
   ratioChart=new Chart(ctx,{
     type:"bar",
-    plugins:[ratioLimitLinePlugin],
-
+    plugins:useLimitLine?[ratioLimitLinePlugin]:[],
     data:{
       labels,
-      datasets:[{
-        label:"Rasio Daftung (%)",
-        data:vals,
-        backgroundColor:vals.map(v=>
-          v>=2 ? "#c6283f" :
-          v>=1.5 ? "#d39a14" :
-          "#198754"
-        ),
-        borderWidth:0,
-        borderRadius:7,
-        borderSkipped:false
-      }]
+      datasets:[dataset]
     },
-
     options:{
       responsive:true,
       maintainAspectRatio:false,
-
-      layout:{
-        padding:{top:14}
-      },
-
+      layout:{padding:{top:14}},
       scales:{
         x:{
-          grid:{
-            display:false,
-            drawTicks:false
-          },
-          border:{
-            display:false
-          },
-          ticks:{
-            font:{size:9},
-            maxRotation:42,
-            minRotation:42
-          }
+          grid:{display:false,drawTicks:false},
+          border:{display:false},
+          ticks:{font:{size:9},maxRotation:42,minRotation:42}
         },
-
         y:{
           beginAtZero:true,
           suggestedMax:suggestedMax,
-
-          grid:{
-            display:false,
-            drawTicks:false
-          },
-          border:{
-            display:false
-          },
+          grid:{display:false,drawTicks:false},
+          border:{display:false},
           ticks:{
-            callback:value=>value+"%"
+            callback:value=>{
+              if(mode==="rasio")return value+"%";
+              if(mode==="rp")return "Rp "+Number(value).toLocaleString("id-ID");
+              return Number(value).toLocaleString("id-ID")+" GWh";
+            }
           }
         }
       },
-
       plugins:{
-        legend:{
-          display:false
-        },
-
+        legend:{display:false},
         tooltip:{
           callbacks:{
-            label:ctx=>
-              "Rasio: "+
-              Number(ctx.raw||0)
-                .toFixed(2)
-                .replace(".",",")+
-              "%"
+            label:ctx=>tooltipFormatter?tooltipFormatter(ctx.raw):String(ctx.raw)
           }
         }
       }
     }
+  });
+}
+
+function getUidSortValue(row,key){
+  const total=Number(row.total??row.TOTAL??0);
+  const over=Number(row.over??row.OVER_SLA??0);
+
+  switch(key){
+    case "uid": return String(row.NAMA_UID||row.nama||row.KDUID||row.uid||"").toUpperCase();
+    case "total": return total;
+    case "sesuai": return Number(row.sesuai??row.SESUAI_SLA??0);
+    case "over": return over;
+    case "overPct": return Number(row.overPct??(total?over/total:0));
+    case "delta": return Number(row.delta??row.deltaDaya??row.DELTA_DAYA??0);
+    case "kwh": return Number(row.kwh??row.KWH_TOTAL??0);
+    case "rp": return Number(row.rp??row.POTENSI_RP??0);
+    case "deltaPlg": return Number(row.deltaPlg??row.DELTA_PLG??0);
+    case "rasio": return Number(row.rasio??row.RASIO??0);
+    case "status": return String(row.status??row.STATUS??"").toUpperCase();
+    default: return 0;
+  }
+}
+
+function sortUidTable(key){
+  if(uidSortKey===key){
+    uidSortDir=uidSortDir==="asc"?"desc":"asc";
+  }else{
+    uidSortKey=key;
+    uidSortDir=key==="uid"?"asc":"desc";
+  }
+  renderUidTable(currentUidRows);
+}
+
+function updateUidSortMarks(){
+  document.querySelectorAll(".sortMark").forEach(el=>{
+    const key=el.dataset.sort;
+    el.textContent=key===uidSortKey
+      ?(uidSortDir==="asc"?"▲":"▼")
+      :"↕";
   });
 }
 
@@ -1622,14 +1877,29 @@ function renderUidTable(rows){
   if(!rows||!rows.length){
     body.innerHTML=`
       <tr>
-        <td colspan="10" style="text-align:center;color:#8a9bac;padding:28px">
+        <td colspan="11" style="text-align:center;color:#8a9bac;padding:28px">
           Tidak ada data sesuai filter.
         </td>
       </tr>`;
+    updateUidSortMarks();
     return;
   }
 
-  body.innerHTML=rows.map(x=>{
+  const sorted=[...rows].sort((a,b)=>{
+    const av=getUidSortValue(a,uidSortKey);
+    const bv=getUidSortValue(b,uidSortKey);
+
+    let cmp=0;
+    if(typeof av==="string"||typeof bv==="string"){
+      cmp=String(av).localeCompare(String(bv),"id",{numeric:true});
+    }else{
+      cmp=Number(av)-Number(bv);
+    }
+
+    return uidSortDir==="asc"?cmp:-cmp;
+  });
+
+  body.innerHTML=sorted.map(x=>{
     const kdUid=x.KDUID||x.uid||"-";
     const uid=x.NAMA_UID||x.nama||kdUid;
     const total=Number(x.total??x.TOTAL??0);
@@ -1638,7 +1908,8 @@ function renderUidTable(rows){
     const overPct=Number(x.overPct??(total?over/total:0));
     const delta=Number(x.delta??x.deltaDaya??x.DELTA_DAYA??0);
     const kwh=Number(x.kwh??x.KWH_TOTAL??0);
-    const deltaPlg=Number(x.deltaPlg2025??x.DELTA_PLG_2025??0);
+    const rp=Number(x.rp??x.POTENSI_RP??0);
+    const deltaPlg=Number(x.deltaPlg??x.DELTA_PLG??0);
     const rasio=Number(x.rasio??x.RASIO??0);
     const status=String(x.status??x.STATUS??"HIJAU").toUpperCase();
 
@@ -1653,11 +1924,175 @@ function renderUidTable(rows){
         <td>${(overPct*100).toFixed(2)}%</td>
         <td>${fmtNum(delta,0)}</td>
         <td>${fmtGwh(kwh)}</td>
+        <td>${fmtRpMiliar(rp)}</td>
         <td>${fmt(deltaPlg)}</td>
         <td><b>${(rasio*100).toFixed(2)}%</b></td>
         <td><span class="badge ${cls}">${esc(status)}</span></td>
       </tr>`;
   }).join("");
+
+  updateUidSortMarks();
+}
+
+
+
+async function loadHighPowerDetail(page=1){
+  try{
+    highPowerPage=page;
+
+    const d=await api("detailHighPower",{page:page});
+
+    if(!d||d.ok===false){
+      throw new Error(d&&d.message?d.message:"Gagal memuat detil pelanggan.");
+    }
+
+    highPowerPage=Number(d.page||1);
+    highPowerTotalPages=Number(d.totalPages||0);
+
+    document.getElementById("highPowerSubtitle").textContent=
+      "BLTH terbaru "+(d.blth||"-")+" • DAYA_BARU ≥ 41.500 VA";
+
+    document.getElementById("highPowerMeta").textContent=
+      fmt(Number(d.totalRows||0))+
+      " pelanggan • maksimal 50 baris per halaman";
+
+    const body=document.getElementById("highPowerBody");
+    const rows=d.rows||[];
+
+    if(!rows.length){
+      body.innerHTML=`
+        <tr>
+          <td colspan="13" style="text-align:center;color:#8a9bac;padding:28px">
+            Tidak ada pelanggan DAYA_BARU ≥ 41.500 VA pada BLTH terbaru.
+          </td>
+        </tr>`;
+    }else{
+      body.innerHTML=rows.map(x=>`
+        <tr>
+          <td>${esc(x.KDUID||"")}</td>
+          <td>${esc(x.KET_TRANSAKSI||"")}</td>
+          <td>${esc(x.IDPEL||"")}</td>
+          <td>${esc(x.NAMA_PELANGGAN||"")}</td>
+          <td>${esc(x.TARIF_LAMA||"")}</td>
+          <td>${fmtNum(Number(x.DAYA_LAMA||0),0)}</td>
+          <td>${esc(x.TARIF_BARU||"")}</td>
+          <td><b>${fmtNum(Number(x.DAYA_BARU||0),0)}</b></td>
+          <td>${esc(x.SEGMEN_TEGANGAN||"")}</td>
+          <td>${esc(x.TGLBAYAR_INDIVIDU||"")}</td>
+          <td>${fmtNum(Number(x.DURASI_HARI_KERJA_CUTOFF_1||0),0)}</td>
+          <td>${esc(x.STATUS_PERMOHONAN||"")}</td>
+          <td>${esc(x.ALASAN_KRITERIA_TMP||"")}</td>
+        </tr>
+      `).join("");
+    }
+
+    document.getElementById("highPowerPageInfo").textContent=
+      highPowerTotalPages
+        ?"Halaman "+highPowerPage+" dari "+highPowerTotalPages
+        :"Halaman -";
+
+    document.getElementById("highPowerPrev").disabled=
+      highPowerPage<=1||highPowerTotalPages===0;
+
+    document.getElementById("highPowerNext").disabled=
+      highPowerTotalPages===0||highPowerPage>=highPowerTotalPages;
+
+  }catch(e){
+    document.getElementById("highPowerBody").innerHTML=`
+      <tr>
+        <td colspan="13" style="text-align:center;color:#c6283f;padding:28px">
+          ${esc(e.message||String(e))}
+        </td>
+      </tr>`;
+  }
+}
+
+function changeHighPowerPage(step){
+  const next=highPowerPage+step;
+  if(next<1)return;
+  if(highPowerTotalPages&&next>highPowerTotalPages)return;
+  loadHighPowerDetail(next);
+}
+
+function scrollHighPowerTable(direction){
+  const el=document.getElementById("highPowerTableWrap");
+  if(!el)return;
+  el.scrollBy({
+    left:direction*520,
+    behavior:"smooth"
+  });
+}
+
+function csvCell(value){
+  const s=String(value??"");
+  return '"'+s.replace(/"/g,'""')+'"';
+}
+
+async function exportHighPowerDetail(){
+  try{
+    showToast("Menyiapkan export detil pelanggan...");
+
+    const d=await api("detailHighPower",{exportAll:true});
+
+    if(!d||d.ok===false){
+      throw new Error(d&&d.message?d.message:"Export gagal.");
+    }
+
+    const headers=[
+      "KDUID",
+      "Ket_Transaksi",
+      "IDPEL",
+      "Nama Pelanggan",
+      "TARIF_LAMA",
+      "DAYA_LAMA",
+      "TARIF_BARU",
+      "DAYA_BARU",
+      "SEGMEN_TEGANGAN",
+      "TGLBAYAR_INDIVIDU",
+      "DURASI_HARI_KERJA_CUTOFF_1",
+      "STATUS_PERMOHONAN",
+      "ALASAN_KRITERIA_TMP"
+    ];
+
+    const lines=[headers.map(csvCell).join(";")];
+
+    (d.rows||[]).forEach(x=>{
+      lines.push([
+        x.KDUID,
+        x.KET_TRANSAKSI,
+        x.IDPEL,
+        x.NAMA_PELANGGAN,
+        x.TARIF_LAMA,
+        x.DAYA_LAMA,
+        x.TARIF_BARU,
+        x.DAYA_BARU,
+        x.SEGMEN_TEGANGAN,
+        x.TGLBAYAR_INDIVIDU,
+        x.DURASI_HARI_KERJA_CUTOFF_1,
+        x.STATUS_PERMOHONAN,
+        x.ALASAN_KRITERIA_TMP
+      ].map(csvCell).join(";"));
+    });
+
+    const blob=new Blob(
+      ["\ufeff"+lines.join("\r\n")],
+      {type:"text/csv;charset=utf-8;"}
+    );
+
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download="Detil_Daya_41500_BLTH_"+(d.blth||"terbaru")+".csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    showToast("Export berhasil.","ok");
+
+  }catch(e){
+    showToast("Export gagal: "+(e.message||e),"err");
+  }
 }
 
 
