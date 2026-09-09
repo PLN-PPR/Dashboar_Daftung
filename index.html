@@ -7,6 +7,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
     :root{
@@ -495,6 +497,62 @@
     .toast.ok{background:#198754}
     .toast.err{background:#c6283f}
 
+
+    .mapCard{margin-bottom:16px}
+    #uidHeatmap{
+      width:100%;
+      height:430px;
+      border-radius:14px;
+      overflow:hidden;
+      background:#eef5f8;
+      border:1px solid var(--line);
+    }
+    .mapHeaderRow{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      margin-bottom:12px;
+    }
+    .mapLegend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      justify-content:flex-end;
+      font-size:11px;
+      font-weight:800;
+    }
+    .legendItem{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .legendDot{
+      width:12px;height:12px;border-radius:50%;
+      display:inline-block;
+    }
+    .legendGreen{background:#29a745}
+    .legendYellow{background:#f0bd22}
+    .legendRed{background:#df2b2b}
+    .legendGrey{background:#cfd8df}
+    .uidMapTooltip{
+      min-width:215px;
+      line-height:1.55;
+      font-family:"Segoe UI",Arial,sans-serif;
+    }
+    .uidMapTooltip .ttl{
+      font-size:13px;
+      font-weight:900;
+      color:#123b60;
+      margin-bottom:4px;
+    }
+    .uidMapTooltip .prov{
+      color:#71869a;
+      font-size:10px;
+      margin-bottom:5px;
+    }
+
     @media(max-width:1100px){
       .kpis{grid-template-columns:repeat(2,1fr)}
       .charts{grid-template-columns:1fr}
@@ -601,8 +659,8 @@
       <div class="hero">
         <h1>Monitoring Daftar Tunggu</h1>
         <p>
-          Pantau jumlah daftar tunggu, kepatuhan SLA, potensi penjualan,
-          dan rasio daftar tunggu terhadap Delta Pelanggan 2025.
+          Pantau daftar tunggu PPR segmen TR dan TM, kepatuhan SLA,
+          potensi penjualan, serta rasio terhadap Delta Pelanggan 2025.
         </p>
       </div>
 
@@ -619,12 +677,19 @@
           <option value="">Semua Segmen</option>
           <option value="TR">TR</option>
           <option value="TM">TM</option>
-          <option value="TT">TT</option>
+        </select>
+
+        <select id="filterTransaksi" onchange="loadDashboard()">
+          <option value="">Semua Transaksi</option>
+          <option value="PB">Pasang Baru</option>
+          <option value="PD">Tambah Daya</option>
         </select>
 
         <button class="btnSecondary" onclick="resetDashboardFilter()">Reset Filter</button>
         <button class="btnPrimary" onclick="syncManual()">↻ SINKRONISASI DATA</button>
       </div>
+
+      <div id="dashboardNoData" class="notice info" style="display:none;margin-bottom:16px"></div>
 
       <div class="kpis">
         <div class="kpi">
@@ -647,8 +712,8 @@
 
         <div class="kpi">
           <div class="kpiLabel">POTENSI JUAL</div>
-          <div id="kpiKwh" class="kpiValue">0</div>
-          <div class="kpiSub">Estimasi potensi kWh</div>
+          <div id="kpiKwh" class="kpiValue">0,00 GWh</div>
+          <div class="kpiSub">Potensi jual energi</div>
         </div>
       </div>
 
@@ -670,6 +735,22 @@
         </div>
       </div>
 
+      <div class="card mapCard">
+        <div class="mapHeaderRow">
+          <div>
+            <h3>Sebaran Rasio Daftung per UID/UIW</h3>
+            <div id="mapSubtitle" class="sub">Heatmap rasio UID terhadap Delta Pelanggan tahun N-1</div>
+          </div>
+          <div class="mapLegend">
+            <span class="legendItem"><i class="legendDot legendRed"></i> ≥ 2% (Merah)</span>
+            <span class="legendItem"><i class="legendDot legendYellow"></i> 1,5%–1,999% (Kuning)</span>
+            <span class="legendItem"><i class="legendDot legendGreen"></i> &lt; 1,5% (Hijau)</span>
+            <span class="legendItem"><i class="legendDot legendGrey"></i> Data belum tersedia</span>
+          </div>
+        </div>
+        <div id="uidHeatmap"></div>
+      </div>
+
       <div class="card">
         <h3>Rekap Daftung per UID</h3>
         <div class="sub">Ringkasan sesuai filter dashboard</div>
@@ -683,8 +764,8 @@
                 <th>&gt; SLA</th>
                 <th>% &gt; SLA</th>
                 <th>Delta Daya</th>
-                <th>Potensi kWh</th>
-                <th>Delta PLG 2025</th>
+                <th>Potensi GWh</th>
+                <th>Delta PLG N-1</th>
                 <th>Rasio</th>
                 <th>Status</th>
               </tr>
@@ -775,6 +856,9 @@ let currentUser = null;
 let uploadRows = [];
 let slaChart = null;
 let ratioChart = null;
+let uidHeatmap = null;
+let uidGeoLayer = null;
+let indonesiaGeoJSON = null;
 
 /* =========================================================
    HELPERS
@@ -789,12 +873,12 @@ function fmtNum(v,d=2){
   return new Intl.NumberFormat("id-ID",{maximumFractionDigits:d}).format(n);
 }
 
-function fmtKwh(v){
-  const n = Number(v || 0);
-  if(Math.abs(n)>=1e9) return (n/1e9).toFixed(2)+" Miliar";
-  if(Math.abs(n)>=1e6) return (n/1e6).toFixed(2)+" Juta";
-  if(Math.abs(n)>=1e3) return (n/1e3).toFixed(1)+" Ribu";
-  return fmt(n);
+function fmtGwh(vKwh){
+  const gwh=Number(vKwh||0)/1000000;
+  return new Intl.NumberFormat("id-ID",{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  }).format(gwh)+" GWh";
 }
 
 function esc(s){
@@ -999,7 +1083,8 @@ async function loadDashboard(){
       unit:currentUser?currentUser.unit:"",
       blth:document.getElementById("filterBLTH").value,
       uid:document.getElementById("filterUID").value,
-      segmen:document.getElementById("filterSegmen").value
+      segmen:document.getElementById("filterSegmen").value,
+      transaksi:document.getElementById("filterTransaksi").value
     };
 
     const d=await api("dashboard",p);
@@ -1021,7 +1106,7 @@ function renderDashboard(d){
   document.getElementById("kpiTotal").textContent=fmt(s.total||0);
   document.getElementById("kpiSesuai").textContent=fmt(s.sesuai||0);
   document.getElementById("kpiOver").textContent=fmt(s.over||0);
-  document.getElementById("kpiKwh").textContent=fmtKwh(s.kwh||0);
+  document.getElementById("kpiKwh").textContent=fmtGwh(s.kwh||0);
 
   const total=Number(s.total||0);
 
@@ -1032,13 +1117,61 @@ function renderDashboard(d){
     total?((Number(s.over||0)/total)*100).toFixed(1)+"% dari total":"-";
 
   fillSelect("filterBLTH",d.blth||[],true,"Semua BLTH");
-  fillSelect("filterUID",d.uids||[],true,"Semua UID");
+  fillUIDSelect("filterUID",d.uids||[],true,"Semua UID");
 
   const uidRows=d.uid||d.uidsData||[];
+
+  const noData=document.getElementById("dashboardNoData");
+  if(d.dataAvailable===false){
+    noData.style.display="block";
+    noData.innerHTML=`<b>Data belum tersedia.</b><br>${esc(d.message||"Belum ada data pada filter yang dipilih.")}`;
+  }else{
+    noData.style.display="none";
+    noData.innerHTML="";
+  }
 
   renderSlaChart(Number(s.sesuai||0),Number(s.over||0));
   renderRatioChart(uidRows);
   renderUidTable(uidRows);
+  renderUIDHeatmap(d.map||[],d.mapBLTH||"",d.tahunDelta||"");
+}
+
+function fillUIDSelect(id,arr,keep,firstText){
+  const el=document.getElementById(id);
+  const old=el.value;
+
+  el.innerHTML="";
+
+  const first=document.createElement("option");
+  first.value="";
+  first.textContent=firstText||"Semua UID";
+  el.appendChild(first);
+
+  (arr||[]).forEach(x=>{
+    const kd=String(
+      typeof x==="object"
+        ?(x.KDUID??x.value??x.uid??"")
+        :x
+    ).trim();
+
+    if(!kd)return;
+
+    const nama=String(
+      typeof x==="object"
+        ?(x.NAMA_UID??x.nama??x.label??kd)
+        :x
+    ).trim();
+
+    const op=document.createElement("option");
+    op.value=kd;               // Filter backend tetap memakai KDUID
+    op.textContent=nama||kd;   // Pengguna melihat NAMA_UID
+    op.dataset.kduid=kd;
+    el.appendChild(op);
+  });
+
+  if(keep && [...el.options].some(o=>o.value===old)){
+    el.value=old;
+  }
 }
 
 function fillSelect(id,arr,keep,firstText){
@@ -1104,7 +1237,7 @@ function renderRatioChart(rows){
     (a,b)=>Number(b.rasio??b.RASIO??0)-Number(a.rasio??a.RASIO??0)
   );
 
-  const labels=sorted.map(x=>x.uid||x.KDUID||x.NAMA_UID||"-");
+  const labels=sorted.map(x=>x.NAMA_UID||x.nama||"-");
   const vals=sorted.map(x=>Number(x.rasio??x.RASIO??0)*100);
 
   const ctx=document.getElementById("ratioChart");
@@ -1161,7 +1294,8 @@ function renderUidTable(rows){
   }
 
   body.innerHTML=rows.map(x=>{
-    const uid=x.uid||x.KDUID||x.NAMA_UID||"-";
+    const kdUid=x.KDUID||x.uid||"-";
+    const uid=x.NAMA_UID||x.nama||kdUid;
     const total=Number(x.total??x.TOTAL??0);
     const sesuai=Number(x.sesuai??x.SESUAI_SLA??0);
     const over=Number(x.over??x.OVER_SLA??0);
@@ -1182,7 +1316,7 @@ function renderUidTable(rows){
         <td>${fmt(over)}</td>
         <td>${(overPct*100).toFixed(2)}%</td>
         <td>${fmtNum(delta,0)}</td>
-        <td>${fmtNum(kwh,0)}</td>
+        <td>${fmtGwh(kwh)}</td>
         <td>${fmt(deltaPlg)}</td>
         <td><b>${(rasio*100).toFixed(2)}%</b></td>
         <td><span class="badge ${cls}">${esc(status)}</span></td>
@@ -1190,10 +1324,211 @@ function renderUidTable(rows){
   }).join("");
 }
 
+
+/* =========================================================
+   HEATMAP RASIO UID / UIW
+   Rasio tidak mengikuti filter segmen/transaksi.
+   Selalu menghitung PB+PD dan TR+TM per UID pada BLTH.
+   ========================================================= */
+
+const PROVINCE_TO_UID = {
+  "ACEH":"11",
+  "SUMATERA UTARA":"12",
+  "SUMATERA BARAT":"13",
+  "SUMATERA SELATAN":"14",
+  "JAMBI":"14",
+  "BENGKULU":"14",
+  "KEPULAUAN BANGKA BELITUNG":"16",
+  "BANGKA BELITUNG":"16",
+  "LAMPUNG":"17",
+  "RIAU":"18",
+  "KEPULAUAN RIAU":"18",
+  "KALIMANTAN BARAT":"21",
+  "KALIMANTAN SELATAN":"22",
+  "KALIMANTAN TENGAH":"22",
+  "KALIMANTAN TIMUR":"23",
+  "KALIMANTAN UTARA":"23",
+  "SULAWESI UTARA":"31",
+  "SULAWESI TENGAH":"31",
+  "GORONTALO":"31",
+  "SULAWESI SELATAN":"32",
+  "SULAWESI TENGGARA":"32",
+  "SULAWESI BARAT":"32",
+  "MALUKU":"41",
+  "MALUKU UTARA":"41",
+  "PAPUA":"42",
+  "PAPUA BARAT":"42",
+  "PAPUA BARAT DAYA":"42",
+  "PAPUA TENGAH":"42",
+  "PAPUA PEGUNUNGAN":"42",
+  "PAPUA SELATAN":"42",
+  "NUSA TENGGARA TIMUR":"43",
+  "NUSA TENGGARA BARAT":"44",
+  "JAWA TIMUR":"51",
+  "JAWA TENGAH":"52",
+  "JAWA BARAT":"53",
+  "DKI JAKARTA":"54",
+  "JAKARTA":"54",
+  "BALI":"55",
+  "BANTEN":"56",
+  "DI YOGYAKARTA":"57",
+  "DAERAH ISTIMEWA YOGYAKARTA":"57",
+  "YOGYAKARTA":"57"
+};
+
+const GEOJSON_URL =
+  "https://cdn.jsdelivr.net/gh/denyherianto/indonesia-geojson-topojson-maps-with-38-provinces@main/GeoJSON/indonesia-38-provinces.geojson";
+
+function normalizeProvinceName(v){
+  return String(v||"")
+    .trim()
+    .toUpperCase()
+    .replace(/\./g,"")
+    .replace(/\s+/g," ");
+}
+
+function getMapColor(ratio,available){
+  if(!available)return "#cfd8df";
+  if(ratio>=0.02)return "#df2b2b";
+  if(ratio>=0.015)return "#f0bd22";
+  return "#29a745";
+}
+
+async function loadIndonesiaGeoJSON(){
+  if(indonesiaGeoJSON)return indonesiaGeoJSON;
+
+  const r=await fetch(GEOJSON_URL,{cache:"force-cache"});
+  if(!r.ok)throw new Error("GeoJSON Indonesia tidak dapat dimuat.");
+
+  indonesiaGeoJSON=await r.json();
+  return indonesiaGeoJSON;
+}
+
+async function renderUIDHeatmap(rows,blth,tahunDelta){
+  const el=document.getElementById("uidHeatmap");
+  const subtitle=document.getElementById("mapSubtitle");
+
+  if(!el || typeof L==="undefined")return;
+
+  subtitle.textContent=
+    `BLTH ${blth||"-"} • Rasio UID = Total Daftung / Delta Pelanggan ${tahunDelta||"N-1"}`;
+
+  const dataByUID={};
+  (rows||[]).forEach(x=>{
+    const kd=String(x.KDUID||x.uid||"").trim();
+    if(kd)dataByUID[kd]=x;
+  });
+
+  try{
+    const geo=await loadIndonesiaGeoJSON();
+
+    if(!uidHeatmap){
+      uidHeatmap=L.map("uidHeatmap",{
+        zoomControl:true,
+        attributionControl:true,
+        scrollWheelZoom:false,
+        doubleClickZoom:false,
+        boxZoom:false
+      });
+    }
+
+    if(uidGeoLayer){
+      uidGeoLayer.remove();
+    }
+
+    uidGeoLayer=L.geoJSON(geo,{
+      style:function(feature){
+        const prov=normalizeProvinceName(
+          feature&&feature.properties
+            ?(feature.properties.PROVINSI||feature.properties.provinsi||feature.properties.name)
+            :""
+        );
+
+        const kd=PROVINCE_TO_UID[prov]||"";
+        const row=dataByUID[kd];
+        const available=!!(row && Number(row.deltaPlg||0)>0);
+
+        return {
+          color:"#ffffff",
+          weight:1,
+          fillColor:getMapColor(Number(row&&row.rasio||0),available),
+          fillOpacity:.88
+        };
+      },
+
+      onEachFeature:function(feature,layer){
+        const provRaw=
+          feature&&feature.properties
+            ?(feature.properties.PROVINSI||feature.properties.provinsi||feature.properties.name||"-")
+            :"-";
+
+        const prov=normalizeProvinceName(provRaw);
+        const kd=PROVINCE_TO_UID[prov]||"";
+        const row=dataByUID[kd];
+
+        let tip;
+
+        if(row && Number(row.deltaPlg||0)>0){
+          tip=`
+            <div class="uidMapTooltip">
+              <div class="ttl">${esc(row.NAMA_UID||row.uid||kd)}</div>
+              <div class="prov">${esc(provRaw)}</div>
+              <b>Total Daftung:</b> ${fmt(row.total||0)}<br>
+              <b>Sesuai SLA:</b> ${fmt(row.sesuai||0)}<br>
+              <b>Lebih SLA:</b> ${fmt(row.over||0)}<br>
+              <b>Rasio:</b> ${(Number(row.rasio||0)*100).toFixed(2).replace(".",",")}%
+            </div>`;
+        }else{
+          tip=`
+            <div class="uidMapTooltip">
+              <div class="ttl">${esc(provRaw)}</div>
+              <b>Data belum tersedia</b>
+            </div>`;
+        }
+
+        layer.bindTooltip(tip,{
+          sticky:true,
+          direction:"top",
+          opacity:.98
+        });
+
+        layer.on({
+          mouseover:function(e){
+            e.target.setStyle({
+              weight:2.2,
+              color:"#17324d",
+              fillOpacity:.97
+            });
+            e.target.bringToFront();
+          },
+          mouseout:function(e){
+            uidGeoLayer.resetStyle(e.target);
+          }
+        });
+      }
+    }).addTo(uidHeatmap);
+
+    uidHeatmap.fitBounds(uidGeoLayer.getBounds(),{
+      padding:[10,10],
+      maxZoom:5
+    });
+
+    setTimeout(()=>uidHeatmap.invalidateSize(),100);
+
+  }catch(err){
+    el.innerHTML=`
+      <div style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px;color:#8a3b47">
+        Peta Indonesia gagal dimuat.<br>${esc(err.message||err)}
+      </div>`;
+  }
+}
+
+
 function resetDashboardFilter(){
   document.getElementById("filterBLTH").value="";
   document.getElementById("filterUID").value="";
   document.getElementById("filterSegmen").value="";
+  document.getElementById("filterTransaksi").value="";
   loadDashboard();
 }
 
