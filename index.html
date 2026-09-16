@@ -2018,21 +2018,14 @@ html body #appPage aside.sidebar .brand small{
 <div id="toast" class="toast">Pesan</div>
 
 <script>
-console.log("Dashboard Daftung V7.17.2.2 DETAIL ENDPOINT FIX aktif");
+console.log("Dashboard Daftung v7.15 aktif");
 
 /* =========================================================
    CONFIG
    ========================================================= */
 const CONFIG = {
-  // Endpoint utama V7.17.2 yang sudah terbukti memuat dashboard dengan normal.
   SCRIPT_URL:
     "https://script.google.com/macros/s/AKfycbyi22grVhdgAs_FnhnyKSup8NMtZceiB4LXTTcz5IzsKTllH-rK-o5Me-OHtR17oZDu/exec",
-
-  // V7.17.2.2: endpoint deployment terbaru khusus request Detil Daftung >= 41.500 VA.
-  // Dashboard utama tetap memakai SCRIPT_URL agar baseline stabil tidak berubah.
-  DETAIL_SCRIPT_URL:
-    "https://script.google.com/macros/s/AKfycbziYyxJL-e6guRwyALmjhqcnt2RKt0Pryvq6QRAaLpvRWxnbdTgzXPi-H9YgxGAtWo/exec",
-
   DEMO_MODE: false
 };
 
@@ -2202,56 +2195,6 @@ async function api(action,payload={}){
   }
 
   return data;
-}
-
-// V7.17.2.2 - request khusus detail ke deployment terbaru.
-// Auth token tetap ikut dikirim karena deployment berada pada project Apps Script yang sama.
-async function apiDetail(action,payload={}){
-  if(CONFIG.DEMO_MODE){
-    return demoApi(action,payload);
-  }
-
-  const url=CONFIG.DETAIL_SCRIPT_URL||CONFIG.SCRIPT_URL;
-  let lastError=null;
-
-  // Retry satu kali untuk mengantisipasi respons sementara dari Apps Script.
-  for(let attempt=0;attempt<2;attempt++){
-    try{
-      const res=await fetch(url,{
-        method:"POST",
-        headers:{"Content-Type":"text/plain;charset=utf-8"},
-        body:JSON.stringify({
-          action,
-          ...payload,
-          ...(currentUser && currentUser.authToken && action!=="login"
-            ? {authToken:currentUser.authToken}
-            : {})
-        })
-      });
-
-      const text=await res.text();
-      let data;
-      try{
-        data=JSON.parse(text);
-      }catch(err){
-        if(res.status===404){
-          throw new Error("Endpoint detail Apps Script tidak ditemukan (HTTP 404).");
-        }
-        const preview=String(text||"").replace(/\s+/g," ").trim().slice(0,200);
-        throw new Error(`Server detail tidak mengembalikan JSON (HTTP ${res.status}). Respons: ${preview||"kosong"}`);
-      }
-
-      if(!res.ok){
-        throw new Error(data&&data.message?data.message:`HTTP ${res.status}`);
-      }
-      return data;
-    }catch(err){
-      lastError=err;
-      if(attempt===0) await sleep(900);
-    }
-  }
-
-  throw lastError||new Error("Gagal menghubungi endpoint detail.");
 }
 
 function demoApi(action,payload){
@@ -3469,7 +3412,7 @@ async function loadHighPowerDetail(page=1){
   try{
     highPowerPage=page;
 
-    const d=await apiDetail("detailHighPower",{
+    const d=await api("detailHighPower",{
       page:page,
       pageSize:highPowerPageSize,
       uid:document.getElementById("filterUID").value,
