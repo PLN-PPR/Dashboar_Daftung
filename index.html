@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="dashboard-version" content="7.17.2-fast-load-detail-ui">
+  <meta name="dashboard-version" content="7.17.3-trend-combo">
   <title>Monitoring Daftar Tunggu PLN</title>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
@@ -1841,8 +1841,8 @@ html body #appPage aside.sidebar .brand small{
           <div class="card chartCard">
             <div class="trendHeader">
               <div>
-                <h3 id="ratioTrendTitle">Tren Rasio Daftung</h3>
-                <div id="ratioTrendSubtitle" class="sub">Perkembangan rasio pada tahun berjalan</div>
+                <h3 id="ratioTrendTitle">Tren Rasio dan Total Daftung</h3>
+                <div id="ratioTrendSubtitle" class="sub">Total Daftung bulanan dan Rasio Daftung pada tahun berjalan</div>
               </div>
             </div>
             <div class="chartBox chartBoxTrend">
@@ -2025,7 +2025,7 @@ console.log("Dashboard Daftung v7.15 aktif");
    ========================================================= */
 const CONFIG = {
   SCRIPT_URL:
-    "https://script.google.com/macros/s/AKfycbyi22grVhdgAs_FnhnyKSup8NMtZceiB4LXTTcz5IzsKTllH-rK-o5Me-OHtR17oZDu/exec",
+    "https://script.google.com/macros/s/AKfycbziYyxJL-e6guRwyALmjhqcnt2RKt0Pryvq6QRAaLpvRWxnbdTgzXPi-H9YgxGAtWo/exec",
   DEMO_MODE: false
 };
 
@@ -2729,24 +2729,20 @@ function renderRatioTrend(rows,selectedBLTH){
   const selected=String(selectedBLTH||"").trim();
 
   /*
-   * V7.15:
-   * Tren hanya ditampilkan sampai BLTH yang sedang dipilih.
-   * 202607 -> Jan s.d Jul
-   * 202606 -> Jan s.d Jun
+   * V7.17.3 TREND COMBO
+   * Primary axis  : Total Daftung (bar hijau gradasi)
+   * Secondary axis: Rasio Daftung (line merah)
+   * Cutoff tetap mengikuti BLTH terpilih.
+   * 202607 -> Jan s.d Jul, 202701 -> Jan 2027.
    */
   const dataRows=[...(rows||[])]
     .filter(x=>{
       const blth=String(x.BLTH||"").trim();
-
       if(!blth)return false;
       if(!selected)return true;
-
-      return blth.slice(0,4)===selected.slice(0,4) &&
-             blth<=selected;
+      return blth.slice(0,4)===selected.slice(0,4) && blth<=selected;
     })
-    .sort((a,b)=>
-      String(a.BLTH||"").localeCompare(String(b.BLTH||""))
-    );
+    .sort((a,b)=>String(a.BLTH||"").localeCompare(String(b.BLTH||"")));
 
   const monthNames={
     "01":"Jan","02":"Feb","03":"Mar","04":"Apr",
@@ -2755,39 +2751,58 @@ function renderRatioTrend(rows,selectedBLTH){
   };
 
   const labels=dataRows.map(x=>monthNames[String(x.bulan||"")]||String(x.BLTH||""));
-  const values=dataRows.map(x=>Number(x.rasio||0)*100);
+  const totals=dataRows.map(x=>Number(x.totalDaftung||0));
+  const ratios=dataRows.map(x=>Number(x.rasio||0)*100);
   const year=String(selected||dataRows[0]?.BLTH||"").slice(0,4);
 
   document.getElementById("ratioTrendTitle").textContent=
-    year ? "Tren Rasio Daftung "+year : "Tren Rasio Daftung";
+    year ? "Tren Rasio dan Total Daftung "+year : "Tren Rasio dan Total Daftung";
 
   document.getElementById("ratioTrendSubtitle").textContent=
     dataRows.length
-      ? "Perkembangan rasio bulanan berdasarkan histori BLTH"
+      ? "Perkembangan total Daftung dan rasio bulanan berdasarkan histori BLTH"
       : "Data tren belum tersedia";
 
-  const areaGrad=ctx.createLinearGradient(0,0,0,canvas.height||250);
-  areaGrad.addColorStop(0,"rgba(28,137,222,.28)");
-  areaGrad.addColorStop(1,"rgba(28,137,222,.02)");
+  const greenGrad=ctx.createLinearGradient(0,0,0,canvas.height||260);
+  greenGrad.addColorStop(0,"rgba(18,168,86,.96)");
+  greenGrad.addColorStop(.55,"rgba(48,185,105,.78)");
+  greenGrad.addColorStop(1,"rgba(142,220,169,.40)");
 
   ratioTrendChart=new Chart(ctx,{
-    type:"line",
     data:{
       labels,
-      datasets:[{
-        label:"Rasio Daftung",
-        data:values,
-        borderColor:"rgba(29,127,211,.95)",
-        backgroundColor:areaGrad,
-        borderWidth:3,
-        pointRadius:4,
-        pointHoverRadius:6,
-        pointBackgroundColor:"#ffffff",
-        pointBorderColor:"rgba(29,127,211,.95)",
-        pointBorderWidth:2.5,
-        tension:.34,
-        fill:true
-      }]
+      datasets:[
+        {
+          type:"bar",
+          label:"Total Daftung",
+          data:totals,
+          yAxisID:"yTotal",
+          backgroundColor:greenGrad,
+          borderColor:"rgba(13,139,69,.90)",
+          borderWidth:1,
+          borderRadius:7,
+          borderSkipped:false,
+          maxBarThickness:38,
+          order:2
+        },
+        {
+          type:"line",
+          label:"Rasio Daftung",
+          data:ratios,
+          yAxisID:"yRatio",
+          borderColor:"rgba(220,38,38,.96)",
+          backgroundColor:"rgba(220,38,38,.06)",
+          borderWidth:3,
+          pointRadius:4,
+          pointHoverRadius:6,
+          pointBackgroundColor:"#ffffff",
+          pointBorderColor:"rgba(220,38,38,.96)",
+          pointBorderWidth:2.5,
+          tension:.34,
+          fill:false,
+          order:1
+        }
+      ]
     },
     options:{
       responsive:true,
@@ -2800,74 +2815,63 @@ function renderRatioTrend(rows,selectedBLTH){
           border:{display:false},
           ticks:{color:"#71869a",font:{size:11}}
         },
-        y:{
+        yTotal:{
+          type:"linear",
+          position:"left",
           beginAtZero:true,
           grid:{color:"rgba(121,145,166,.12)",drawBorder:false},
           border:{display:false},
+          title:{display:true,text:"Total Daftung (PLG)",color:"#159447",font:{size:11,weight:"700"}},
           ticks:{
-            color:"#71869a",
+            color:"#159447",
+            callback:v=>Number(v).toLocaleString("id-ID")
+          }
+        },
+        yRatio:{
+          type:"linear",
+          position:"right",
+          beginAtZero:true,
+          grid:{drawOnChartArea:false},
+          border:{display:false},
+          title:{display:true,text:"Rasio Daftung",color:"#dc2626",font:{size:11,weight:"700"}},
+          ticks:{
+            color:"#dc2626",
             callback:v=>Number(v).toLocaleString("id-ID",{maximumFractionDigits:1})+"%"
           }
         }
       },
       plugins:{
-        legend:{display:false},
+        legend:{
+          display:true,
+          position:"top",
+          align:"end",
+          labels:{
+            usePointStyle:true,
+            pointStyle:"circle",
+            boxWidth:9,
+            boxHeight:9,
+            padding:16,
+            color:"#536b80",
+            font:{size:11,weight:"600"}
+          }
+        },
         tooltip:{
-          backgroundColor:"rgba(20,45,70,.92)",
-          padding:10,
+          backgroundColor:"rgba(20,45,70,.94)",
+          padding:11,
           cornerRadius:10,
-          displayColors:false,
           callbacks:{
-            title:items=>{
-              const i=items[0]?.dataIndex??0;
-              return String(dataRows[i]?.BLTH||"");
-            },
-            label:item=>
-              "Rasio: "+
-              Number(item.raw||0).toLocaleString("id-ID",{
-                minimumFractionDigits:2,
-                maximumFractionDigits:2
-              })+"%"
+            label:ctx=>{
+              if(ctx.dataset.yAxisID==="yRatio"){
+                return "Rasio Daftung: "+Number(ctx.raw||0).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";
+              }
+              return "Total Daftung: "+Number(ctx.raw||0).toLocaleString("id-ID")+" PLG";
+            }
           }
         }
       }
     }
   });
 }
-
-
-const ratioLimitLinePlugin = {
-  id:"ratioLimitLine",
-  afterDatasetsDraw(chart){
-    const {ctx,chartArea,scales}=chart;
-    if(!chartArea || !scales || !scales.y) return;
-
-    const limit=2;
-    const y=scales.y.getPixelForValue(limit);
-
-    // jangan menggambar bila 2% di luar area grafik
-    if(y<chartArea.top || y>chartArea.bottom) return;
-
-    ctx.save();
-
-    ctx.beginPath();
-    ctx.setLineDash([8,6]);
-    ctx.lineWidth=2.5;
-    ctx.strokeStyle="#dc2626";
-    ctx.moveTo(chartArea.left,y);
-    ctx.lineTo(chartArea.right,y);
-    ctx.stroke();
-
-    ctx.setLineDash([]);
-    ctx.fillStyle="#dc2626";
-    ctx.font="700 11px Segoe UI, Arial";
-    ctx.textAlign="right";
-    ctx.textBaseline="bottom";
-    ctx.fillText("Batas Maksimum 2%",chartArea.right-4,y-6);
-
-    ctx.restore();
-  }
-};
 
 function renderMetricChart(){
   const mode=document.getElementById("metricChartSelect")?.value||"rasio";
