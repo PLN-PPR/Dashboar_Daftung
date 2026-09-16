@@ -2873,6 +2873,39 @@ function renderRatioTrend(rows,selectedBLTH){
   });
 }
 
+const ratioLimitLinePlugin = {
+  id:"ratioLimitLine",
+  afterDatasetsDraw(chart){
+    const {ctx,chartArea,scales}=chart;
+    if(!chartArea || !scales || !scales.y) return;
+
+    const limit=2;
+    const y=scales.y.getPixelForValue(limit);
+
+    // jangan menggambar bila 2% di luar area grafik
+    if(y<chartArea.top || y>chartArea.bottom) return;
+
+    ctx.save();
+
+    ctx.beginPath();
+    ctx.setLineDash([8,6]);
+    ctx.lineWidth=2.5;
+    ctx.strokeStyle="#dc2626";
+    ctx.moveTo(chartArea.left,y);
+    ctx.lineTo(chartArea.right,y);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.fillStyle="#dc2626";
+    ctx.font="700 11px Segoe UI, Arial";
+    ctx.textAlign="right";
+    ctx.textBaseline="bottom";
+    ctx.fillText("Batas Maksimum 2%",chartArea.right-4,y-6);
+
+    ctx.restore();
+  }
+};
+
 function renderMetricChart(){
   const mode=document.getElementById("metricChartSelect")?.value||"rasio";
   const title=document.getElementById("metricChartTitle");
