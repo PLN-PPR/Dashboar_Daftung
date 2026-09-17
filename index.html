@@ -2164,9 +2164,27 @@ function togglePass(){
 /* =========================================================
    SAFE API
    ========================================================= */
+const detailClientCache=new Map();
+const DETAIL_CLIENT_CACHE_MS=30000;
+
+function detailClientKey(action,payload){
+  if(action!=="detailHighPower" && action!=="detailOverSla")return "";
+  if(payload && (payload.exportAll===true || String(payload.exportAll||"").toLowerCase()==="true"))return "";
+  const u=currentUser&&currentUser.username?currentUser.username:"";
+  return action+"|"+u+"|"+JSON.stringify(payload||{});
+}
+
 async function api(action,payload={}){
   if(CONFIG.DEMO_MODE){
     return demoApi(action,payload);
+  }
+
+  const clientKey=detailClientKey(action,payload);
+  if(clientKey){
+    const hit=detailClientCache.get(clientKey);
+    if(hit && (Date.now()-hit.t)<DETAIL_CLIENT_CACHE_MS){
+      return hit.data;
+    }
   }
 
   let res;
@@ -2213,6 +2231,9 @@ async function api(action,payload={}){
     throw new Error(data&&data.message ? data.message : `HTTP ${res.status}`);
   }
 
+  if(clientKey && data && data.ok!==false){
+    detailClientCache.set(clientKey,{t:Date.now(),data});
+  }
   return data;
 }
 
