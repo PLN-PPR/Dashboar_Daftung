@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="dashboard-version" content="7.17.2.1-trend-combo">
+  <meta name="dashboard-version" content="7.17.2.5-performance-optimization-1">
   <title>Monitoring Daftar Tunggu PLN</title>
   <!-- V7.17.2.4 NAMA UID -->
 
@@ -2366,6 +2366,10 @@ function showPage(page){
 /* =========================================================
    DASHBOARD
    ========================================================= */
+// V7.17.2.5: cegah request dashboard identik berjalan bersamaan.
+let dashboardLoadSignature="";
+let dashboardLoadPromise=null;
+
 async function loadDashboard(){
   document.body.classList.add("dashboardLoading");
 
@@ -2380,7 +2384,15 @@ async function loadDashboard(){
       transaksi:document.getElementById("filterTransaksi").value
     };
 
-    const d=await api("dashboard",p);
+    const signature=JSON.stringify(p);
+    if(dashboardLoadPromise && dashboardLoadSignature===signature){
+      await dashboardLoadPromise;
+      return;
+    }
+
+    dashboardLoadSignature=signature;
+    dashboardLoadPromise=api("dashboard",p);
+    const d=await dashboardLoadPromise;
 
     if(d&&!d.ok&&d.message){
       throw new Error(d.message);
@@ -2391,6 +2403,7 @@ async function loadDashboard(){
   }catch(e){
     showToast("Dashboard gagal dimuat: "+(e.message||e),"err");
   }finally{
+    dashboardLoadPromise=null;
     document.body.classList.remove("dashboardLoading");
   }
 }
@@ -2477,9 +2490,14 @@ function renderDashboard(d){
   const mapRowsForLazy=d.map||[];
   const mapBlthForLazy=d.mapBLTH||"";
   const mapYearForLazy=d.tahunDelta||"";
-  setTimeout(()=>{
+  const renderMapLazy=()=>{
     renderUIDHeatmap(mapRowsForLazy,mapBlthForLazy,mapYearForLazy);
-  },120);
+  };
+  if("requestIdleCallback" in window){
+    requestIdleCallback(renderMapLazy,{timeout:600});
+  }else{
+    setTimeout(renderMapLazy,180);
+  }
 
   // Tabel detail dibuat lazy agar KPI/chart/map tampil lebih cepat.
   scheduleHighPowerDetailLoad();
