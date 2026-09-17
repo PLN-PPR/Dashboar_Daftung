@@ -1350,6 +1350,24 @@ html body #appPage aside.sidebar .brandLogo img{
 
 </style>
 
+
+<style id="over-sla-popup-v71723">
+.clickableOverSla{cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}
+.clickableOverSla:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(198,40,63,.12)}
+.overModal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:24px}
+.overModal.show{display:flex}
+.overModalBackdrop{position:absolute;inset:0;background:rgba(8,28,48,.48);backdrop-filter:blur(3px)}
+.overModalPanel{position:relative;width:min(96vw,1480px);max-height:90vh;overflow:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 28px 80px rgba(10,42,68,.28)}
+.overModalHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+.overTitleRow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.overTitleRow h3{margin:0;color:#17324d;font-size:20px}
+.overModalActions{display:flex;align-items:center;gap:10px}
+.overClose{width:40px;height:40px;border:0;border-radius:12px;background:#eef5f9;color:#17324d;font-size:26px;cursor:pointer}
+.overStatus{display:inline-flex;align-items:center;gap:7px;font-weight:800;color:#c6283f}
+.overStatusDot{width:9px;height:9px;border-radius:50%;background:#e33b50;box-shadow:0 0 0 5px rgba(227,59,80,.12)}
+@media(max-width:760px){.overModal{padding:8px}.overModalPanel{width:100%;max-height:94vh;padding:14px}.overModalHeader{flex-direction:column}.overModalActions{width:100%;justify-content:flex-end}}
+</style>
+
 <style id="sidebar-final-fix">
 /* FINAL SIDEBAR OVERRIDE V7.8 - sengaja paling akhir */
 html body #appPage aside.sidebar{
@@ -1746,7 +1764,7 @@ html body #appPage aside.sidebar .brand small{
           <div id="kpiSesuaiPct" class="kpiSub">-</div>
         </div>
 
-        <div class="kpi kpiSlaOver">
+        <div class="kpi kpiSlaOver clickableOverSla" onclick="openOverSlaModal()" title="Klik untuk melihat Detil Daftung ≥ SLA">
           <div class="kpiHead">
             <div class="kpiLabel">OVER SLA</div>
             <div class="kpiIcon iconOver">!</div>
@@ -2627,6 +2645,14 @@ function renderSlaChart(sesuai,over){
         duration:700,
         easing:"easeOutQuart"
       },
+      onClick:(evt,elements)=>{
+        if(elements && elements.length && elements[0].index===1){
+          openOverSlaModal();
+        }
+      },
+      onHover:(evt,elements)=>{
+        evt.native.target.style.cursor=(elements&&elements.length&&elements[0].index===1)?"pointer":"default";
+      },
       plugins:{
         legend:{
           position:"bottom",
@@ -3355,6 +3381,107 @@ function changeUidPage(step){
 }
 
 
+
+let overSlaPage=1;
+let overSlaPageSize=10;
+let overSlaTotalPages=0;
+
+function openOverSlaModal(){
+  const m=document.getElementById("overSlaModal");
+  m.classList.add("show");
+  m.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+  overSlaPage=1;
+  loadOverSlaDetail(1);
+}
+function closeOverSlaModal(){
+  const m=document.getElementById("overSlaModal");
+  m.classList.remove("show");
+  m.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
+}
+function overSlaPayload(extra={}){
+  return {
+    blth:document.getElementById("filterBLTH").value,
+    uid:document.getElementById("filterUID").value,
+    segmen:document.getElementById("filterSegmen").value,
+    transaksi:document.getElementById("filterTransaksi").value,
+    ...extra
+  };
+}
+function showOverSlaLoading(){
+  const body=document.getElementById("overSlaBody");
+  body.innerHTML=`<tr><td colspan="15" class="detailLoadingCell">
+    <div class="detailLoadingWrap"><div class="detailSpinner"></div><div>Memuat data Over SLA...</div></div>
+  </td></tr>`;
+}
+async function loadOverSlaDetail(page=1){
+  showOverSlaLoading();
+  try{
+    const d=await api("detailOverSla",overSlaPayload({page,pageSize:overSlaPageSize}));
+    if(!d||d.ok===false)throw new Error(d?.message||"Gagal memuat data Over SLA.");
+    overSlaPage=Number(d.page||1);
+    overSlaTotalPages=Number(d.totalPages||0);
+    document.getElementById("overSlaSubtitle").textContent=
+      "BLTH "+(d.blth||"-")+" • pelanggan dengan LEBIH_ALL = LEWAT • sesuai filter dashboard";
+    document.getElementById("overSlaMeta").textContent=
+      fmt(Number(d.totalRows||0))+" pelanggan • maksimal "+overSlaPageSize+" baris per halaman";
+    renderOverSlaRows(d.rows||[]);
+    document.getElementById("overSlaPageInfo").textContent=
+      overSlaTotalPages?"Halaman "+overSlaPage+" dari "+overSlaTotalPages:"Halaman -";
+    document.getElementById("overSlaPrev").disabled=overSlaPage<=1||!overSlaTotalPages;
+    document.getElementById("overSlaNext").disabled=!overSlaTotalPages||overSlaPage>=overSlaTotalPages;
+  }catch(e){
+    document.getElementById("overSlaBody").innerHTML=
+      `<tr><td colspan="15" style="text-align:center;color:#c6283f;padding:30px">${esc(e.message||String(e))}</td></tr>`;
+  }
+}
+function renderOverSlaRows(rows){
+  const body=document.getElementById("overSlaBody");
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="15" style="text-align:center;padding:30px;color:#7890a5">Data Over SLA tidak tersedia.</td></tr>';
+    return;
+  }
+  body.innerHTML=rows.map(r=>`<tr>
+    <td>${esc(r.KDUID)}</td><td>${esc(r.KET_TRANSAKSI)}</td><td>${esc(r.IDPEL)}</td>
+    <td>${esc(r.NAMA_PELANGGAN)}</td><td>${esc(r.TARIF_LAMA)}</td><td>${fmt(Number(r.DAYA_LAMA||0))}</td>
+    <td>${esc(r.TARIF_BARU)}</td><td><b>${fmt(Number(r.DAYA_BARU||0))}</b></td>
+    <td>${esc(r.SEGMEN_TEGANGAN)}</td><td>${esc(r.TGLBAYAR_INDIVIDU)}</td>
+    <td>${fmt(Number(r.DURASI_HARI_KERJA_CUTOFF_1||0))}</td><td>${esc(r.KRITERIA_TMP)}</td>
+    <td>${esc(r.STATUS_PERMOHONAN)}</td><td>${esc(r.ALASAN_KRITERIA_TMP)}</td>
+    <td><span class="overStatus"><i class="overStatusDot"></i>${esc(r.Lebih_All)}</span></td>
+  </tr>`).join("");
+}
+function changeOverSlaPage(step){
+  const next=overSlaPage+step;
+  if(next<1)return;
+  if(overSlaTotalPages&&next>overSlaTotalPages)return;
+  loadOverSlaDetail(next);
+}
+function changeOverSlaPageSize(){
+  const n=Number(document.getElementById("overSlaPageSize").value||10);
+  overSlaPageSize=[10,25,50,100].includes(n)?n:10;
+  overSlaPage=1;
+  loadOverSlaDetail(1);
+}
+async function exportOverSlaExcel(){
+  try{
+    showToast("Menyiapkan file Excel Over SLA...");
+    const d=await api("detailOverSla",overSlaPayload({exportAll:true}));
+    if(!d||d.ok===false)throw new Error(d?.message||"Export gagal.");
+    const rows=d.rows||[];
+    if(!rows.length){showToast("Tidak ada data Over SLA untuk diekspor.");return;}
+    const cols=["KDUID","KET_TRANSAKSI","IDPEL","NAMA_PELANGGAN","TARIF_LAMA","DAYA_LAMA",
+      "TARIF_BARU","DAYA_BARU","SEGMEN_TEGANGAN","TGLBAYAR_INDIVIDU",
+      "DURASI_HARI_KERJA_CUTOFF_1","KRITERIA_TMP","STATUS_PERMOHONAN","ALASAN_KRITERIA_TMP","Lebih_All"];
+    const aoa=[cols,...rows.map(r=>cols.map(c=>r[c]??""))];
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"Over SLA");
+    XLSX.writeFile(wb,"Detil_Daftung_Over_SLA_"+(d.blth||"")+".xlsx");
+  }catch(e){showToast(e.message||String(e));}
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeOverSlaModal();});
 
 let highPowerLazyTimer=null;
 let highPowerObserver=null;
@@ -4300,6 +4427,52 @@ async function uploadExcel(){
   }
 }
 </script>
+
+<div id="overSlaModal" class="overModal" aria-hidden="true">
+  <div class="overModalBackdrop" onclick="closeOverSlaModal()"></div>
+  <div class="overModalPanel">
+    <div class="overModalHeader">
+      <div>
+        <div class="overTitleRow">
+          <h3>Detil Daftung ≥ SLA</h3>
+          <select id="overSlaPageSize" class="detailPageSizeSelect" onchange="changeOverSlaPageSize()">
+            <option value="10" selected>10 baris</option>
+            <option value="25">25 baris</option>
+            <option value="50">50 baris</option>
+            <option value="100">100 baris</option>
+          </select>
+        </div>
+        <div id="overSlaSubtitle" class="sub">Data pelanggan Over SLA sesuai filter dashboard</div>
+        <div id="overSlaMeta" class="detailMeta">Memuat data...</div>
+      </div>
+      <div class="overModalActions">
+        <button class="btnPrimary" onclick="exportOverSlaExcel()">⇩ Export Excel</button>
+        <button class="overClose" onclick="closeOverSlaModal()" aria-label="Tutup">×</button>
+      </div>
+    </div>
+    <div class="detailTableWrap">
+      <table class="detailTable">
+        <thead>
+          <tr>
+            <th>KDUID</th><th>KET_TRANSAKSI</th><th>IDPEL</th><th>NAMA PELANGGAN</th>
+            <th>TARIF_LAMA</th><th>DAYA_LAMA</th><th>TARIF_BARU</th><th>DAYA_BARU</th>
+            <th>SEGMEN_TEGANGAN</th><th>TGLBAYAR_INDIVIDU</th>
+            <th>DURASI_HARI_KERJA_CUTOFF_1</th><th>KRITERIA_TMP</th>
+            <th>STATUS_PERMOHONAN</th><th>ALASAN_KRITERIA_TMP</th><th>LEBIH_ALL</th>
+          </tr>
+        </thead>
+        <tbody id="overSlaBody"></tbody>
+      </table>
+    </div>
+    <div class="detailPager">
+      <div id="overSlaPageInfo" class="smallMuted">Halaman -</div>
+      <div class="pagerButtons">
+        <button id="overSlaPrev" class="smallBtn" onclick="changeOverSlaPage(-1)">← Previous</button>
+        <button id="overSlaNext" class="smallBtn" onclick="changeOverSlaPage(1)">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
