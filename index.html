@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="dashboard-version" content="7.17.2.1-trend-combo">
   <title>Monitoring Daftar Tunggu PLN</title>
+  <!-- V7.17.2.4 NAMA UID -->
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
 document.addEventListener("click",function(e){
@@ -1947,7 +1948,7 @@ html body #appPage aside.sidebar .brand small{
           <table class="detailTable">
             <thead>
               <tr>
-                <th class="detailSortTh" onclick="sortHighPower('KDUID')">KDUID <span>↕</span></th>
+                <th class="detailSortTh" onclick="sortHighPower('NAMA_UID')">NAMA UID <span>↕</span></th>
                 <th class="detailSortTh" onclick="sortHighPower('KET_TRANSAKSI')">Ket_Transaksi <span>↕</span></th>
                 <th class="detailSortTh" onclick="sortHighPower('IDPEL')">IDPEL <span>↕</span></th>
                 <th class="detailSortTh" onclick="sortHighPower('NAMA_PELANGGAN')">Nama Pelanggan <span>↕</span></th>
@@ -3443,7 +3444,7 @@ function renderOverSlaRows(rows){
     return;
   }
   body.innerHTML=rows.map(r=>`<tr>
-    <td>${esc(r.KDUID)}</td><td>${esc(r.KET_TRANSAKSI)}</td><td>${esc(r.IDPEL)}</td>
+    <td>${esc(r.NAMA_UID||r.KDUID)}</td><td>${esc(r.KET_TRANSAKSI)}</td><td>${esc(r.IDPEL)}</td>
     <td>${esc(r.NAMA_PELANGGAN)}</td><td>${esc(r.TARIF_LAMA)}</td><td>${fmt(Number(r.DAYA_LAMA||0))}</td>
     <td>${esc(r.TARIF_BARU)}</td><td><b>${fmt(Number(r.DAYA_BARU||0))}</b></td>
     <td>${esc(r.SEGMEN_TEGANGAN)}</td><td>${esc(r.TGLBAYAR_INDIVIDU)}</td>
@@ -3471,10 +3472,13 @@ async function exportOverSlaExcel(){
     if(!d||d.ok===false)throw new Error(d?.message||"Export gagal.");
     const rows=d.rows||[];
     if(!rows.length){showToast("Tidak ada data Over SLA untuk diekspor.");return;}
-    const cols=["KDUID","KET_TRANSAKSI","IDPEL","NAMA_PELANGGAN","TARIF_LAMA","DAYA_LAMA",
+    const cols=["NAMA_UID","KET_TRANSAKSI","IDPEL","NAMA_PELANGGAN","TARIF_LAMA","DAYA_LAMA",
       "TARIF_BARU","DAYA_BARU","SEGMEN_TEGANGAN","TGLBAYAR_INDIVIDU",
       "DURASI_HARI_KERJA_CUTOFF_1","KRITERIA_TMP","STATUS_PERMOHONAN","ALASAN_KRITERIA_TMP","Lebih_All"];
-    const aoa=[cols,...rows.map(r=>cols.map(c=>r[c]??""))];
+    const labels=["NAMA UID","KET_TRANSAKSI","IDPEL","NAMA PELANGGAN","TARIF_LAMA","DAYA_LAMA",
+      "TARIF_BARU","DAYA_BARU","SEGMEN_TEGANGAN","TGLBAYAR_INDIVIDU",
+      "DURASI_HARI_KERJA_CUTOFF_1","KRITERIA_TMP","STATUS_PERMOHONAN","ALASAN_KRITERIA_TMP","LEBIH_ALL"];
+    const aoa=[labels,...rows.map(r=>cols.map(c=>r[c]??""))];
     const ws=XLSX.utils.aoa_to_sheet(aoa);
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,"Over SLA");
@@ -3652,7 +3656,7 @@ function renderHighPowerRows(){
 
     return `
       <tr>
-        <td>${esc(x.KDUID||"")}</td>
+        <td>${esc(x.NAMA_UID||x.KDUID||"")}</td>
         <td>${esc(x.KET_TRANSAKSI||"")}</td>
         <td>${esc(x.IDPEL||"")}</td>
         <td>${esc(x.NAMA_PELANGGAN||"")}</td>
@@ -3726,7 +3730,7 @@ async function exportHighPowerDetail(){
     }
 
     const headers=[
-      "KDUID",
+      "NAMA UID",
       "Ket_Transaksi",
       "IDPEL",
       "Nama Pelanggan",
@@ -3747,7 +3751,7 @@ async function exportHighPowerDetail(){
 
     (d.rows||[]).forEach(x=>{
       lines.push([
-        x.KDUID,
+        x.NAMA_UID||x.KDUID,
         x.KET_TRANSAKSI,
         x.IDPEL,
         x.NAMA_PELANGGAN,
@@ -4454,7 +4458,7 @@ async function uploadExcel(){
       <table class="detailTable">
         <thead>
           <tr>
-            <th>KDUID</th><th>KET_TRANSAKSI</th><th>IDPEL</th><th>NAMA PELANGGAN</th>
+            <th>NAMA UID</th><th>KET_TRANSAKSI</th><th>IDPEL</th><th>NAMA PELANGGAN</th>
             <th>TARIF_LAMA</th><th>DAYA_LAMA</th><th>TARIF_BARU</th><th>DAYA_BARU</th>
             <th>SEGMEN_TEGANGAN</th><th>TGLBAYAR_INDIVIDU</th>
             <th>DURASI_HARI_KERJA_CUTOFF_1</th><th>KRITERIA_TMP</th>
