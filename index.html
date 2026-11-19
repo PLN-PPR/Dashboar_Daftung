@@ -3,7 +3,7 @@
 <head>
   <script id="dashboard-cache-version">
     (() => {
-      const APP_VERSION = '7.17.2.8.7';
+      const APP_VERSION = '7.17.2.8.8';
       window.DASHBOARD_VERSION = APP_VERSION;
 
       try {
@@ -45,7 +45,7 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="dashboard-version" content="7.17.2.8.7-uid-export">
+  <meta name="dashboard-version" content="7.17.2.8.8-weekly-3month">
   <title>Monitoring Daftar Tunggu PLN</title>
   <!-- V7.17.2.4 NAMA UID -->
 
@@ -1683,6 +1683,14 @@ html body #appPage aside.sidebar .brand small{
 
 
 <style id="weekly-dashboard-v71728">
+/* V7.17.2.8.8 - Pilihan tampilan tren bulan N / tiga BLTH terakhir. */
+.weeklyTrendSwitch{display:inline-flex;align-items:center;gap:4px;padding:4px;border:1px solid #dce6ef;border-radius:999px;background:#f7fafc;white-space:nowrap;flex-shrink:0}
+.weeklyTrendBtn{border:0;background:transparent;color:#5f7387;font-size:11px;font-weight:800;padding:7px 10px;border-radius:999px;cursor:pointer;transition:background .18s,color .18s}
+.weeklyTrendBtn:hover{background:#e7f0f7}
+.weeklyTrendBtn.active{color:#fff;background:linear-gradient(135deg,var(--primary),var(--primary2));box-shadow:0 3px 10px rgba(0,114,206,.18)}
+.weeklyCharts .cardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media(max-width:650px){.weeklyTrendSwitch{width:100%;justify-content:center}.weeklyTrendBtn{flex:1}}
+
 .weeklyHero{
   background:linear-gradient(135deg,#0b6da9,#1596c7);
   color:#fff;border-radius:22px;padding:22px 26px;margin-bottom:18px;
@@ -2127,13 +2135,21 @@ html body #appPage aside.sidebar .brand small{
       <div class="charts weeklyCharts">
         <div class="chartCard">
           <div class="cardHead">
-            <div><h3>Tren Total Daftung Mingguan</h3><p>Minggu I–V hingga Closing Bulanan</p></div>
+            <div><h3>Tren Total Daftung Mingguan</h3><p id="weeklyTotalSub">Minggu I–V hingga Closing Bulanan</p></div>
+            <div class="weeklyTrendSwitch" aria-label="Periode tren Total Daftung">
+              <button type="button" class="weeklyTrendBtn active" data-weekly-mode="MONTH" onclick="setWeeklyChartMode('MONTH')">Bulan N</button>
+              <button type="button" class="weeklyTrendBtn" data-weekly-mode="3M" onclick="setWeeklyChartMode('3M')">Tren 3 Bulan</button>
+            </div>
           </div>
           <div class="chartBoxTrend"><canvas id="weeklyTotalChart"></canvas></div>
         </div>
         <div class="chartCard">
           <div class="cardHead">
-            <div><h3>Tren Over SLA Mingguan</h3><p>Perubahan pelanggan Over SLA setiap posisi</p></div>
+            <div><h3>Tren Over SLA Mingguan</h3><p id="weeklyOverSub">Perubahan pelanggan Over SLA setiap posisi</p></div>
+            <div class="weeklyTrendSwitch" aria-label="Periode tren Over SLA">
+              <button type="button" class="weeklyTrendBtn active" data-weekly-mode="MONTH" onclick="setWeeklyChartMode('MONTH')">Bulan N</button>
+              <button type="button" class="weeklyTrendBtn" data-weekly-mode="3M" onclick="setWeeklyChartMode('3M')">Tren 3 Bulan</button>
+            </div>
           </div>
           <div class="chartBoxTrend"><canvas id="weeklyOverChart"></canvas></div>
         </div>
@@ -4834,6 +4850,8 @@ function pdpMaskRows_(headers,rows){
 let weeklyTotalChart=null;
 let weeklyOverChart=null;
 let weeklyFilterReady=false;
+let weeklyChartMode='MONTH'; // Default selalu tampilan bulan N.
+let weeklyRequestSequence=0; // Cegah respons lama menimpa pilihan terakhir.
 
 const WEEKLY_ORDER={
   "MINGGU_I":1,"MINGGU_II":2,"MINGGU_III":3,
@@ -4844,6 +4862,47 @@ const WEEKLY_LABEL={
   "MINGGU_IV":"Minggu IV","MINGGU_V":"Minggu V","CLOSING":"Closing"
 };
 
+const WEEKLY_MONTH_NAMES={"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"Mei","06":"Jun","07":"Jul","08":"Agu","09":"Sep","10":"Okt","11":"Nov","12":"Des"};
+function wkBlthLabel(value){
+  const blth=String(value||'').trim();
+  return /^\d{6}$/.test(blth)
+    ? `${WEEKLY_MONTH_NAMES[blth.slice(4,6)]||blth.slice(4,6)} ${blth.slice(0,4)}`
+    : blth;
+}
+function syncWeeklyTrendButtons(){
+  document.querySelectorAll('.weeklyTrendBtn').forEach(btn=>{
+    const active=btn.dataset.weeklyMode===weeklyChartMode;
+    btn.classList.toggle('active',active);
+    btn.setAttribute('aria-pressed',String(active));
+  });
+}
+function setWeeklyChartMode(mode){
+  const next=mode==='3M'?'3M':'MONTH';
+  if(next===weeklyChartMode)return;
+  weeklyChartMode=next;
+  syncWeeklyTrendButtons();
+  loadWeeklyDashboard(false);
+}
+// Grafik 3 bulan: kunci agregasi wajib BLTH + posisi; hindari semua Minggu I dari bulan berbeda digabung.
+function wkAggregateChart(rows,mode){
+  const byKey={};
+  (rows||[]).forEach(r=>{
+    const blth=String(r.BLTH||'').trim();
+    const pos=String(r.JENIS_POSISI||'').trim();
+    if(!pos)return;
+    const key=mode==='3M' ? blth+'|'+pos : pos;
+    if(!byKey[key])byKey[key]={blth,pos,total:0,over:0};
+    byKey[key].total+=wkNum(r.TOTAL_DAFTUNG);
+    byKey[key].over+=wkNum(r.OVER_SLA);
+  });
+  return Object.values(byKey).sort((a,b)=>{
+    if(mode==='3M'){
+      const diff=a.blth.localeCompare(b.blth);
+      if(diff)return diff;
+    }
+    return (WEEKLY_ORDER[a.pos]||99)-(WEEKLY_ORDER[b.pos]||99);
+  });
+}
 function wkNum(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function wkPct(v){return new Intl.NumberFormat("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2}).format(wkNum(v)*100)}
 function wkDeltaHtml(v){
@@ -4892,23 +4951,34 @@ function wkRowsByUid(rows){
     return db-da;
   });
 }
-function renderWeeklyCharts(series){
-  const labels=series.map(x=>WEEKLY_LABEL[x.pos]||x.pos);
+function renderWeeklyCharts(series,mode='MONTH'){
+  // Multi-line labels keep up to 18 weekly points legible on smaller screens.
+  const labels=series.map(x=>{
+    const p=WEEKLY_LABEL[x.pos]||x.pos;
+    return mode==='3M' ? [p,wkBlthLabel(x.blth)] : p;
+  });
   const totals=series.map(x=>x.total);
   const overs=series.map(x=>x.over);
   if(weeklyTotalChart)weeklyTotalChart.destroy();
   if(weeklyOverChart)weeklyOverChart.destroy();
-
-  weeklyTotalChart=new Chart(document.getElementById("weeklyTotalChart"),{
-    type:"line",
-    data:{labels,datasets:[{label:"Total Daftung",data:totals,borderColor:"#14956a",backgroundColor:"rgba(20,149,106,.12)",fill:true,tension:.3,pointRadius:4,pointHoverRadius:6}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,ticks:{callback:v=>fmt(v)}},x:{grid:{display:false}}}}
+  const xScale={grid:{display:false},ticks:{autoSkip:true,maxTicksLimit:mode==='3M'?9:7,maxRotation:0,minRotation:0,font:{size:10}}};
+  weeklyTotalChart=new Chart(document.getElementById('weeklyTotalChart'),{
+    type:'line',
+    data:{labels,datasets:[{label:'Total Daftung',data:totals,borderColor:'#14956a',backgroundColor:'rgba(20,149,106,.12)',fill:true,tension:.3,pointRadius:4,pointHoverRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,ticks:{callback:v=>fmt(v)}},x:xScale}}
   });
-  weeklyOverChart=new Chart(document.getElementById("weeklyOverChart"),{
-    type:"line",
-    data:{labels,datasets:[{label:"Over SLA",data:overs,borderColor:"#e04b5a",backgroundColor:"rgba(224,75,90,.10)",fill:true,tension:.3,pointRadius:4,pointHoverRadius:6}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}},x:{grid:{display:false}}}}
+  weeklyOverChart=new Chart(document.getElementById('weeklyOverChart'),{
+    type:'line',
+    data:{labels,datasets:[{label:'Over SLA',data:overs,borderColor:'#e04b5a',backgroundColor:'rgba(224,75,90,.10)',fill:true,tension:.3,pointRadius:4,pointHoverRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}},x:xScale}}
   });
+  document.getElementById('weeklyTotalSub').textContent=mode==='3M'
+    ? 'Tren posisi mingguan pada 3 BLTH terakhir hingga bulan terpilih'
+    : 'Minggu I–V hingga Closing Bulanan';
+  document.getElementById('weeklyOverSub').textContent=mode==='3M'
+    ? 'Tren Over SLA per posisi pada 3 BLTH terakhir'
+    : 'Perubahan pelanggan Over SLA setiap posisi';
+  syncWeeklyTrendButtons();
 }
 function renderWeeklyTable(rows){
   const body=document.getElementById("weeklyTableBody");
@@ -4936,10 +5006,13 @@ async function loadWeeklyDashboard(refreshFilters=false){
   const uidEl=document.getElementById("weeklyUID");
   const requestedBlth=blthEl.value||"";
   const requestedUid=uidEl.value||"";
+  const requestId=++weeklyRequestSequence;
+  const chartMode=weeklyChartMode;
   document.getElementById("weeklyNoData").style.display="none";
 
   try{
-    const d=await api("weeklyHistory",{blth:requestedBlth,uid:requestedUid});
+    const d=await api("weeklyHistory",{blth:requestedBlth,uid:requestedUid,chartMode});
+    if(requestId!==weeklyRequestSequence)return;
     if(!d||d.ok===false)throw new Error(d?.message||"Gagal memuat progres mingguan.");
 
     if(refreshFilters || !weeklyFilterReady){
@@ -4969,7 +5042,11 @@ async function loadWeeklyDashboard(refreshFilters=false){
       document.getElementById("weeklyNoData").style.display="block";
     }
 
+    // KPI dan tabel wajib tetap memakai baris BLTH terpilih (d.data).
     const series=wkAggregate(rows);
+    // Chart dapat memakai baris tiga BLTH terpisah (d.chartData).
+    const actualChartMode=d.chartMode==='3M'?'3M':'MONTH';
+    const chartSeries=wkAggregateChart(d.chartData||rows,actualChartMode);
     const last=series.length?series[series.length-1]:null;
     const prev=series.length>1?series[series.length-2]:null;
 
@@ -4981,14 +5058,14 @@ async function loadWeeklyDashboard(refreshFilters=false){
     wkSetDelta("wkDeltaOver",last&&prev?last.over-prev.over:null);
     document.getElementById("wkRatio").innerHTML=`<span class="kpiNumber">${last?fmtNum(last.rasio*100,2):"0,00"}</span><span class="kpiUnit">%</span>`;
 
-    renderWeeklyCharts(series);
+    renderWeeklyCharts(chartSeries,actualChartMode);
     renderWeeklyTable(rows);
     document.getElementById("weeklyTableSub").textContent=
       series.length>1
         ? `${WEEKLY_LABEL[prev.pos]||prev.pos} → ${WEEKLY_LABEL[last.pos]||last.pos}`
         : (series.length===1?`${WEEKLY_LABEL[last.pos]||last.pos} • menunggu posisi berikutnya untuk menghitung Δ`:"Belum ada data");
   }catch(err){
-    showToast(err.message||String(err),"err");
+    if(requestId===weeklyRequestSequence)showToast(err.message||String(err),"err");
   }
 }
 function resetWeeklyFilter(){
